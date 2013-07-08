@@ -68,6 +68,14 @@ Entity.STATIC = "static";
 // and may move.
 Entity.PHANTOM = "phantom";
 
+// Track FPS
+var framesSinceLastTick = 0;
+var framesPerSecond = '?';
+setInterval(function(){
+    framesPerSecond = framesSinceLastTick;
+    framesSinceLastTick = 0;
+}, 1000);
+
 /*
 // The displace resolution will only move an entity outside
 // of the space of the other and zero the velocity in that direction
@@ -78,18 +86,16 @@ Entity.DISPLACE = "displace";
 // restitution coefficient
 Entity.ELASTIC = "elastic";
 */
-
 var DrawFrame = function() {
 
     // Clear the view
     view.fillStyle = BACKGROUND_COLOR;
     view.fillRect(0, 0, VIEWPORT.width, VIEWPORT.height);
 
-    for (var i = 0; i < WORKSPACE.length; i++){
+    for (var i = 0; i < WORKSPACE.length; i++) {
 
-        if (WORKSPACE[i] != null) {
+        if (WORKSPACE[i]) {
             var item = WORKSPACE[i];
-
             var trail = function(item, speed, alpha, offset) {
                 if (Math.abs(item.vx) + Math.abs(item.vy) > speed) {
 
@@ -144,6 +150,12 @@ var DrawFrame = function() {
             }
         }
     }
+
+    // Draw the FPS
+    framesSinceLastTick++;
+    view.font = '14px Georgia';
+    view.fillStyle = 'yellow';
+    view.fillText('FPS: ' + framesPerSecond, 5, 15);
 };
 
 var Physics = function(delta) {
@@ -218,14 +230,14 @@ var Physics = function(delta) {
 
 
 document.onkeydown = function(e) {
-    alert(e);
+//    alert(e);
     //alert(document.keyCode);
 };
 
 document.onkeydown = function(e) {
     var event = window.event ? window.event : e;
     var key = event.keyCode;
-    console.log(key);
+    //console.log(key);
     if (key == "87" || key == "38") {
         // W or UP key
     }
@@ -247,7 +259,7 @@ document.onkeydown = function(e) {
 document.onkeyup = function(e) {
     var event = window.event ? window.event : e;
     var key = event.keyCode;
-    console.log(key);
+    //console.log(key);
     if (key == "87" || key == "38") {
         // W or UP key
     }
@@ -268,14 +280,15 @@ document.onkeyup = function(e) {
 
 var GameConditions = function() {
 
-    for (var i = 0; i < WORKSPACE.length; i++) {
+    //Work backwards so we can slice out items as we go
+    for (var i = (WORKSPACE.length - 1); i >= 0; i--) {
 
         if (WORKSPACE[i] != null) {
             var part = WORKSPACE[i];
 
             if (part.y > VIEWPORT.height) {
-                WORKSPACE[i] = null;
-                //part = null;
+                WORKSPACE.splice(i, 1); //Remove it from the array
+//                console.log('Slice! ' + i + ', ' + WORKSPACE.length);
             }
             /*
              if (part.y > VIEWPORT.height) {
@@ -331,5 +344,4 @@ var green = new Entity("Green Block", 25, 25, Math.random() * 800, Math.random()
 var yellow = new Entity ("Yellow Block", 25, 25, Math.random() * 800, Math.random() * 600, Entity.DYNAMIC, "#ffff00", "#000000", 0, null, Math.random() * -100, Math.random() * -100);
 */
 // Start the Engine
-
-requestAnimationFrame(Engine);
+Engine();

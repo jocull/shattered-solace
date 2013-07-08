@@ -1,19 +1,26 @@
 // Insert game generation code here...
-/*
-for (var i = 0; i < 50; i++) {
-    new Entity("Rain Drop", 1, 10, Math.random() * 800, 0, Entity.DYNAMIC, "#0000ff", "#0000ff");
+
+function randomInt(min, max){
+    return Math.max((min || 0), Math.floor(Math.random() * max));
 }
-*/
-var loop;
-var speed = 1000 / 60;
+
+var minRaindropsPerTick = 3;
+var maxRaindropsPerTick = 10;
+var timePerRaindropTick;
+var timePerRaindropBaseTick = 1000 / 60;
+var timeSinceRaindropTick = 0;
 
 var generateRain = function() {
-    new Entity("Rain Drop", 1, 20, Math.random() * 800, -100, Entity.DYNAMIC, "#3333ff", "#3333ff", 0, null, 0, 100);
-    new Entity("Rain Drop", 1, 15, Math.random() * 800, -100, Entity.DYNAMIC, "#3333ff", "#3333ff", 0, null, 0, 50);
-    new Entity("Rain Drop", 1, 10, Math.random() * 800, -100, Entity.DYNAMIC, "#3333ff", "#3333ff", 0, null, 0, 0);
+    //Is it time to drop more rain yet?
+    timePerRaindropTick = timePerRaindropBaseTick  * (SLOW_TIME ? 20 : 1);
+    if(((new Date().getTime()) - timeSinceRaindropTick) > timePerRaindropTick){
 
-
-    loop = setTimeout(generateRain, speed);
+        timeSinceRaindropTick = (new Date().getTime());
+        var rainDropsThisTick = randomInt(minRaindropsPerTick, maxRaindropsPerTick);
+        for(var i = 0; i < rainDropsThisTick; i++){
+            new Entity("Rain Drop", 1, randomInt(10, 20), randomInt(1, 800), -100, Entity.DYNAMIC, "#3333ff", "#3333ff", 0, null, 0, randomInt(0, 100));
+        }
+    }
+    requestAnimationFrame(generateRain);
 };
-
-generateRain();
+generateRain(); //Kick it off

@@ -8,7 +8,7 @@ var SETTLE_POINT = 0.001;
 // Measured in seconds, i.e., 10 pixels per second.
 // Positive values will move right or down.
 // Negative values will move left or up.
-var GRAVITY_X = 0.0;
+var GRAVITY_X = 1;
 var GRAVITY_Y = 1;
 
 var WORKSPACE = [];
@@ -20,15 +20,49 @@ var VIEWPORT_CONTEXT = VIEWPORT.getContext("2d");
 var BUFFER = document.createElement("canvas");
 var BUFFER_CONTEXT = BUFFER.getContext("2d");
 
+// Set the view size
+VIEWPORT.width  = window.innerWidth;
+VIEWPORT.height = window.innerHeight;
+
 BUFFER.width = VIEWPORT.width;
 BUFFER.height = VIEWPORT.height;
 
-var BACKGROUND_COLOR = "#333366";
+var BACKGROUND_COLOR = "#ffffff";
 
 // A shortcut for drawing methods
 var view = BUFFER_CONTEXT;
 
 var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, elasticity, texture, vx, vy, ax, ay) {
+
+    this.destroy = function() {
+        var location = WORKSPACE.indexOf(this);
+
+        WORKSPACE.splice(location, 1);
+    };
+
+    this.freeze = function(toggleColor) {
+        this.frozen = true;
+        this.vx = 0;
+        this.vy = 0;
+        this.ax = 0;
+        this.ay = 0;
+
+        if (toggleColor == true) {
+            this.lastOutlineColor = this.outlineColor;
+            this.lastFillColor = this.fillColor;
+
+            this.fillColor = "#00bbff";
+            this.outlineColor = "#005577";
+        }
+    };
+
+    this.thaw = function() {
+        this.frozen = false;
+        this.fillColor = this.lastFillColor;
+        this.outlineColor = this.lastOutlineColor;
+    };
+
+
 
     this.name = name || "Object";
     this.width = width || 50;
@@ -46,6 +80,11 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
     this.texture = texture || null;
     this.type = type || Entity.DYNAMIC;
     //this.collideType = collideType || Entity.DISPLACE;
+
+    // Some state values for functions and such
+    this.frozen = false;
+    this.lastOutlineColor = this.outlineColor;
+    this.lastFillColor = this.fillColor;
 
     WORKSPACE.push(this);
 
@@ -174,9 +213,9 @@ var DrawFrame = function() {
 
     // Draw the FPS
     framesSinceLastTick++;
-    view.font = '14px Georgia';
-    view.fillStyle = 'yellow';
-    view.fillText('FPS: ' + framesPerSecond, 5, 15);
+    view.font = '14px Arial';
+    view.fillStyle = 'black';
+    view.fillText('FPS: ' + framesPerSecond, VIEWPORT.width - 55, 19);
 };
 
 var Physics = function(delta) {
@@ -211,11 +250,13 @@ var Physics = function(delta) {
 
              }();
              */
-            var Velocity = function() {
-                item.vx = item.ax * delta + item.vx + GRAVITY_X;
-                item.vy = item.ay * delta + item.vy + GRAVITY_Y;
-                //alert("VY "+item.vy);
-            }();
+            if (item.frozen == false) {
+                var Velocity = function() {
+                    item.vx = item.ax * delta + item.vx + GRAVITY_X;
+                    item.vy = item.ay * delta + item.vy + GRAVITY_Y;
+                    //alert("VY "+item.vy);
+                }();
+            }
 
             var Position = function() {
                 item.x = item.vx * delta + item.x;
@@ -251,11 +292,11 @@ var Physics = function(delta) {
 
 document.ontouchstart = function(e) {
     SLOW_TIME = true;
-}
+};
 
 document.ontouchend = function(e) {
     SLOW_TIME = false;
-}
+};
 
 document.onkeydown = function(e) {
 //    alert(e);
@@ -310,29 +351,41 @@ var GameConditions = function() {
 
     //Work backwards so we can slice out items as we go
     for (var i = (WORKSPACE.length - 1); i >= 0; i--) {
-
-        if (WORKSPACE[i] != null) {
             var part = WORKSPACE[i];
-
+            /*
             if (part.y > VIEWPORT.height) {
                 WORKSPACE.splice(i, 1); //Remove it from the array
 //                console.log('Slice! ' + i + ', ' + WORKSPACE.length);
             }
-            /*
+            */
+
              if (part.y > VIEWPORT.height) {
-             part.y = 0;
+             part.y = -part.height;
              }
              if (part.y + part.height < 0) {
              part.y = VIEWPORT.height;
              }
              if (part.x > VIEWPORT.width) {
-             part.x = 0;
+             part.x = -part.width;
              }
              if (part.x + part.height < 0) {
              part.x = VIEWPORT.width;
              }
-             */
+
+        if (Math.abs(block.vx) >= 512) {
+            var random = Math.random();
+            if (random > 0.5) {
+                GRAVITY_X = GRAVITY_X * -1;
+            }
         }
+
+        if (Math.abs(block.vy) >= 512) {
+            var random = Math.random();
+            if (random > 0.5) {
+                GRAVITY_Y = GRAVITY_Y * -1;
+            }
+        }
+
     }
 };
 
@@ -366,10 +419,10 @@ var Engine = function() {
 };
 
 // Initialize here
-/*
+
 var block = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25, VIEWPORT.height / 2 - 25, Entity.DYNAMIC, "#0000ff", "#000000", 0, null, 0, 0, 0, 0);
-var green = new Entity("Green Block", 25, 25, Math.random() * 800, Math.random() * 600, Entity.DYNAMIC, "#00ff00", "#000000");
-var yellow = new Entity ("Yellow Block", 25, 25, Math.random() * 800, Math.random() * 600, Entity.DYNAMIC, "#ffff00", "#000000", 0, null, Math.random() * -100, Math.random() * -100);
-*/
+var green = new Entity("Green Block", 25, 25, Math.random() * VIEWPORT.width, Math.random() * VIEWPORT.height, Entity.DYNAMIC, "#00ff00", "#000000");
+var yellow = new Entity ("Yellow Block", 25, 25, Math.random() * VIEWPORT.width, Math.random() * VIEWPORT.height, Entity.DYNAMIC, "#ffff00", "#000000", 0, null, Math.random() * -100, Math.random() * -100);
+
 // Start the Engine
 Engine();

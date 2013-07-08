@@ -8,8 +8,8 @@ var SETTLE_POINT = 0.001;
 // Measured in seconds, i.e., 10 pixels per second.
 // Positive values will move right or down.
 // Negative values will move left or up.
-var GRAVITY_X = 1;
-var GRAVITY_Y = 1;
+var GRAVITY_X = 5;
+var GRAVITY_Y = 5;
 
 var WORKSPACE = [];
 
@@ -252,8 +252,8 @@ var Physics = function(delta) {
              */
             if (item.frozen == false) {
                 var Velocity = function() {
-                    item.vx = item.ax * delta + item.vx + GRAVITY_X;
-                    item.vy = item.ay * delta + item.vy + GRAVITY_Y;
+                    item.vx = item.ax * delta + item.vx + (GRAVITY_X * delta);
+                    item.vy = item.ay * delta + item.vy + (GRAVITY_Y * delta);
                     //alert("VY "+item.vy);
                 }();
             }

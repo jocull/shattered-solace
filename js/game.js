@@ -1,11 +1,11 @@
 // Insert game generation code here...
 
 function randomInt(min, max){
-    return Math.max((min || 0), Math.floor(Math.random() * max));
+    return Math.max(min, Math.round(Math.random() * max));
 }
 
 var minRaindropsPerTick = 3;
-var maxRaindropsPerTick = 10;
+var maxRaindropsPerTick = 3;
 var timePerRaindropTick;
 var timePerRaindropBaseTick = 1000 / 60;
 var timeSinceRaindropTick = 0;
@@ -18,7 +18,7 @@ var generateRain = function() {
         timeSinceRaindropTick = (new Date().getTime());
         var rainDropsThisTick = randomInt(minRaindropsPerTick, maxRaindropsPerTick);
         for(var i = 0; i < rainDropsThisTick; i++){
-            new Entity("Rain Drop", 1, randomInt(10, 20), randomInt(1, BUFFER.width), -100, Entity.DYNAMIC, "#3333ff", "#3333ff", 0, null, 0, randomInt(0, 100));
+            new Entity("Rain Drop", randomInt(1, 3), randomInt(10, 20), randomInt(1, BUFFER.width), -100, Entity.DYNAMIC, "#3333ff", "#3333ff", 0, null, 0, randomInt(0, 100));
         }
     }
     requestAnimationFrame(generateRain);

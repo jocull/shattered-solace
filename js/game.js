@@ -18,7 +18,7 @@ var generateRain = function() {
         timeSinceRaindropTick = (new Date().getTime());
         var rainDropsThisTick = randomInt(minRaindropsPerTick, maxRaindropsPerTick);
         for(var i = 0; i < rainDropsThisTick; i++){
-            new Entity("Rain Drop", 1, randomInt(10, 20), randomInt(1, 800), -100, Entity.DYNAMIC, "#3333ff", "#3333ff", 0, null, 0, randomInt(0, 100));
+            new Entity("Rain Drop", 1, randomInt(10, 20), randomInt(1, BUFFER.width), -100, Entity.DYNAMIC, "#3333ff", "#3333ff", 0, null, 0, randomInt(0, 100));
         }
     }
     requestAnimationFrame(generateRain);

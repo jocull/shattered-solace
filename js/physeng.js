@@ -88,6 +88,12 @@ Entity.ELASTIC = "elastic";
 */
 var DrawFrame = function() {
 
+    // Set the view size
+    VIEWPORT.width  = window.innerWidth;
+    VIEWPORT.height = window.innerHeight;
+    BUFFER.width = window.innerWidth;
+    BUFFER.height = window.innerHeight;
+
     // Clear the view
     view.fillStyle = BACKGROUND_COLOR;
     view.fillRect(0, 0, VIEWPORT.width, VIEWPORT.height);
@@ -150,6 +156,21 @@ var DrawFrame = function() {
             }
         }
     }
+
+    // Draw the title
+    var title = 'Shattered Solace';
+    view.font = 'italic ' + Math.max(20, (BUFFER.width / 30)) + 'px Arial';
+    view.fillStyle = '#1a1a1a';
+    var titleMeasurement = view.measureText(title);
+    var titleHeight = BUFFER.height - 10;
+    view.fillText(title,
+                    BUFFER.width / 2 - (titleMeasurement.width / 2),
+                    titleHeight);
+//    view.strokeStyle = '#111';
+//    view.lineWidth = 1;
+//    view.strokeText(title,
+//                    BUFFER.width / 2 - (titleMeasurement.width / 2),
+//                    titleHeight);
 
     // Draw the FPS
     framesSinceLastTick++;
@@ -228,6 +249,13 @@ var Physics = function(delta) {
         };
 }());
 
+document.ontouchstart = function(e) {
+    SLOW_TIME = true;
+}
+
+document.ontouchend = function(e) {
+    SLOW_TIME = false;
+}
 
 document.onkeydown = function(e) {
 //    alert(e);

@@ -11,6 +11,11 @@ var SETTLE_POINT = 0.001;
 var GRAVITY_X = 0;
 var GRAVITY_Y = 5;
 
+//These factors handle long key presses
+var GRAVITY_FACTOR_BASE = 0.3;
+var GRAVITY_X_FACTOR = 0;
+var GRAVITY_Y_FACTOR = 0;
+
 var WORKSPACE = [];
 
 var NUMBER_OF_TRAILS = 3;
@@ -23,12 +28,22 @@ var VIEWPORT_CONTEXT = VIEWPORT.getContext("2d");
 var BUFFER = document.createElement("canvas");
 var BUFFER_CONTEXT = BUFFER.getContext("2d");
 
-// Set the view size
-VIEWPORT.width  = window.innerWidth;
-VIEWPORT.height = window.innerHeight;
+// Set the view size, detect resizes, and orientation changes
+var PIXEL_RATIO = window.devicePixelRatio || 1;
+function setViewSize() {
+    VIEWPORT.width  = window.innerWidth * PIXEL_RATIO;
+    VIEWPORT.height = window.innerHeight * PIXEL_RATIO;
+    BUFFER.width = window.innerWidth * PIXEL_RATIO;
+    BUFFER.height = window.innerHeight * PIXEL_RATIO;
 
-BUFFER.width = VIEWPORT.width;
-BUFFER.height = VIEWPORT.height;
+    VIEWPORT.style.width = (window.innerWidth) + 'px';
+    VIEWPORT.style.height = (window.innerHeight) + 'px';
+    BUFFER.style.width = (window.innerWidth) + 'px';
+    BUFFER.style.height = (window.innerHeight) + 'px';
+}
+setViewSize();
+window.addEventListener('resize', setViewSize);
+window.addEventListener('orientationchange', setViewSize);
 
 var BACKGROUND_COLOR = "#222244";
 
@@ -64,8 +79,6 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
         this.fillColor = this.lastFillColor;
         this.outlineColor = this.lastOutlineColor;
     };
-
-
 
     this.name = name || "Object";
     this.width = width || 50;
@@ -129,12 +142,6 @@ Entity.DISPLACE = "displace";
 Entity.ELASTIC = "elastic";
 */
 var DrawFrame = function() {
-
-    // Set the view size
-    VIEWPORT.width  = window.innerWidth;
-    VIEWPORT.height = window.innerHeight;
-    BUFFER.width = window.innerWidth;
-    BUFFER.height = window.innerHeight;
 
     // Clear the view
     view.fillStyle = BACKGROUND_COLOR;
@@ -231,11 +238,33 @@ var DrawFrame = function() {
     // Draw the FPS
     framesSinceLastTick++;
     view.font = '14px Arial';
-    view.fillStyle = 'black';
-    view.fillText('FPS: ' + framesPerSecond, VIEWPORT.width - 55, 19);
+    view.fillStyle = '#fff';
+    var fpsText = 'FPS: ' + framesPerSecond;
+    var fpsMeasurement = view.measureText(fpsText);
+    view.fillText(fpsText, VIEWPORT.width - (fpsMeasurement.width) - 5, 15);
 };
 
 var Physics = function(delta) {
+
+    //Add in factors for each tick
+    GRAVITY_X += GRAVITY_X_FACTOR;
+    GRAVITY_Y += GRAVITY_Y_FACTOR;
+
+    //Limit the maximum gravity adjustment
+    GRAVITY_X = Math.min(10, GRAVITY_X);
+    GRAVITY_X = Math.max(-10, GRAVITY_X);
+    GRAVITY_Y = Math.min(20, GRAVITY_Y);
+    GRAVITY_Y = Math.max(-10, GRAVITY_Y);
+
+    //Naturally gravitate towards the middle
+    if(GRAVITY_X < 0)
+        GRAVITY_X += 0.1;
+    else if(GRAVITY_X > 0)
+        GRAVITY_X -= 0.1;
+    if(GRAVITY_Y < 5)
+        GRAVITY_Y += 0.3;
+    else if(GRAVITY_Y > 5)
+        GRAVITY_Y -= 0.1;
 
     for (var i = 0; i < WORKSPACE.length; i++) {
 
@@ -315,6 +344,11 @@ document.ontouchend = function(e) {
     SLOW_TIME = false;
 };
 
+document.ontouchmove = function(e) {
+    e.preventDefault(); //Stop scrolling on iOS
+    e.stopPropagation();
+};
+
 window.ondevicemotion = function(event) {
     devicex = event.accelerationIncludingGravity.x;
     devicey = event.accelerationIncludingGravity.y;
@@ -325,25 +359,24 @@ window.ondevicemotion = function(event) {
 };
 
 document.onkeydown = function(e) {
-//    alert(e);
-    //alert(document.keyCode);
-};
-
-document.onkeydown = function(e) {
     var event = window.event ? window.event : e;
     var key = event.keyCode;
-    //console.log(key);
+    //console.log('KEY DOWN: ' + key);
     if (key == "87" || key == "38") {
         // W or UP key
+        GRAVITY_Y_FACTOR = -(GRAVITY_FACTOR_BASE * 1.5);
     }
     if (key == "65" || key == "37") {
         // A or LEFT key
+        GRAVITY_X_FACTOR = -(GRAVITY_FACTOR_BASE);
     }
     if (key == "83" || key == "40") {
         // S or DOWN key
+        GRAVITY_Y_FACTOR = GRAVITY_FACTOR_BASE;
     }
     if (key == "68" || key == "39") {
         // D or RIGHT key
+        GRAVITY_X_FACTOR = GRAVITY_FACTOR_BASE;
     }
     if (key == "32") {
         // Spacebar
@@ -354,18 +387,22 @@ document.onkeydown = function(e) {
 document.onkeyup = function(e) {
     var event = window.event ? window.event : e;
     var key = event.keyCode;
-    //console.log(key);
+    //console.log('KEY UP: ' + key);
     if (key == "87" || key == "38") {
         // W or UP key
+        GRAVITY_Y_FACTOR = 0;
     }
     if (key == "65" || key == "37") {
         // A or LEFT key
+        GRAVITY_X_FACTOR = 0;
     }
     if (key == "83" || key == "40") {
         // S or DOWN key
+        GRAVITY_Y_FACTOR = 0;
     }
     if (key == "68" || key == "39") {
         // D or RIGHT key
+        GRAVITY_X_FACTOR = 0;
     }
     if (key == "32") {
         // Spacebar
@@ -428,6 +465,7 @@ var GameConditions = function() {
 };
 
 var SLOW_TIME = false;
+var SLOW_TIME_FACTOR = 3;
 
 var lastStep;
 
@@ -440,7 +478,7 @@ var Engine = function() {
 
     // Calculations
     if (SLOW_TIME == true) {
-        Physics(delta / 100);
+        Physics(delta / SLOW_TIME_FACTOR);
     }
     else {
         Physics(delta);

@@ -13,7 +13,7 @@ var timeSinceRaindropTick = 0;
 
 var generateRain = function() {
     //Is it time to drop more rain yet?
-    timePerRaindropTick = timePerRaindropBaseTick  * (SLOW_TIME ? 20 : 1);
+    timePerRaindropTick = timePerRaindropBaseTick  * (SLOW_TIME ? SLOW_TIME_FACTOR : 1);
     if(((new Date().getTime()) - timeSinceRaindropTick) > timePerRaindropTick){
 
         timeSinceRaindropTick = (new Date().getTime());

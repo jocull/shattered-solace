@@ -1,6 +1,6 @@
 // Insert game generation code here...
 
-/*
+
 function randomInt(min, max){
     return Math.max(min, Math.round(Math.random() * max));
 }
@@ -19,11 +19,17 @@ var generateRain = function() {
         timeSinceRaindropTick = (new Date().getTime());
         var rainDropsThisTick = randomInt(minRaindropsPerTick, maxRaindropsPerTick);
         for(var i = 0; i < rainDropsThisTick; i++){
-            new Entity("Rain Drop", randomInt(1, 3), randomInt(10, 20), randomInt(1, BUFFER.width), -100, Entity.DYNAMIC, "#3333ff", "#3333ff", 0, null, 0, randomInt(0, 100));
+            var size1 = randomInt(2, 4);
+            var size2 = randomInt(2, 4);
+            var size3 = randomInt(2, 4);
+            var size4 = randomInt(2, 4);
+            if (GRAVITY_Y > 0) { new Entity("Rain Drop", size1, size1, randomInt(-100, BUFFER.width + 100), -100, Entity.DYNAMIC, "#3333ff", "#3333ff", 0, null, 0, 0); }
+            if (GRAVITY_Y < 0) { new Entity("Rain Drop", size2, size2, randomInt(-100, BUFFER.width + 100), BUFFER.height + 100, Entity.DYNAMIC, "#3333ff", "#3333ff", 0, null, 0, 0); }
+            if (GRAVITY_X > 0) { new Entity("Rain Drop", size3, size3, -100, randomInt(-100, BUFFER.height + 100), Entity.DYNAMIC, "#3333ff", "#3333ff", 0, null, 0, 0); }
+            if (GRAVITY_X < 0) { new Entity("Rain Drop", size4, size4, BUFFER.width + 100, randomInt(-100, BUFFER.height + 100), Entity.DYNAMIC, "#3333ff", "#3333ff", 0, null, 0, 0); }
         }
     }
     requestAnimationFrame(generateRain);
 };
 generateRain(); //Kick it off
 
-*/

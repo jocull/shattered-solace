@@ -8,10 +8,13 @@ var SETTLE_POINT = 0.001;
 // Measured in seconds, i.e., 10 pixels per second.
 // Positive values will move right or down.
 // Negative values will move left or up.
-var GRAVITY_X = 5;
+var GRAVITY_X = 0;
 var GRAVITY_Y = 5;
 
 var WORKSPACE = [];
+
+var NUMBER_OF_TRAILS = 3;
+var TRAILS_BASE_SPEED = 2;
 
 // Engine Output
 
@@ -27,7 +30,7 @@ VIEWPORT.height = window.innerHeight;
 BUFFER.width = VIEWPORT.width;
 BUFFER.height = VIEWPORT.height;
 
-var BACKGROUND_COLOR = "#ffffff";
+var BACKGROUND_COLOR = "#222244";
 
 // A shortcut for drawing methods
 var view = BUFFER_CONTEXT;
@@ -170,9 +173,23 @@ var DrawFrame = function() {
             if (item.texture == null){
 
                 // Probably putting too much emphasis on these...
+                var speed = TRAILS_BASE_SPEED;
+                var offset = 0.05; // Default 0.1
+                var alpha = 0.5; // Default 0.3
+                for (var i2 = 0; i2 < NUMBER_OF_TRAILS; i2++) {
+
+                    newAlpha = (alpha / NUMBER_OF_TRAILS) * (6 - i2);
+
+                    trail(item, speed, newAlpha, offset);
+
+                    offset = offset + 0.1;
+                    speed = speed * 2;
+                }
+                /*
                 trail(item, 32, 0.3, 0.1);
                 trail(item, 128, 0.2, 0.2);
                 trail(item, 512, 0.1, 0.3);
+                */
 
                 view.beginPath();
 
@@ -298,6 +315,15 @@ document.ontouchend = function(e) {
     SLOW_TIME = false;
 };
 
+window.ondevicemotion = function(event) {
+    devicex = event.accelerationIncludingGravity.x;
+    devicey = event.accelerationIncludingGravity.y;
+    devicez = event.accelerationIncludingGravity.z;
+
+    GRAVITY_X = devicex / 2;
+    GRAVITY_Y = devicey / 2 * -1;
+};
+
 document.onkeydown = function(e) {
 //    alert(e);
     //alert(document.keyCode);
@@ -351,26 +377,38 @@ var GameConditions = function() {
 
     //Work backwards so we can slice out items as we go
     for (var i = (WORKSPACE.length - 1); i >= 0; i--) {
-            var part = WORKSPACE[i];
-            /*
-            if (part.y > VIEWPORT.height) {
-                WORKSPACE.splice(i, 1); //Remove it from the array
-//                console.log('Slice! ' + i + ', ' + WORKSPACE.length);
-            }
-            */
+        var part = WORKSPACE[i];
 
-             if (part.y > VIEWPORT.height) {
+        if (part.y > VIEWPORT.height + 150) {
+            part.destroy();
+        }
+        if (part.y + part.height < -150) {
+            part.destroy();
+        }
+        if (part.x > VIEWPORT.width + 150) {
+            part.destroy();
+        }
+        if (part.x + part.height < -150) {
+            part.destroy();
+        }
+
+        if (part.x < -200 || part.x > VIEWPORT.width + 200 || part.y > VIEWPORT.height + 200) {
+            //alert("Part is out of bounds!");
+        }
+
+         /*
+         if (part.y > VIEWPORT.height) {
              part.y = -part.height;
-             }
-             if (part.y + part.height < 0) {
+         }
+         if (part.y + part.height < 0) {
              part.y = VIEWPORT.height;
-             }
-             if (part.x > VIEWPORT.width) {
+         }
+         if (part.x > VIEWPORT.width) {
              part.x = -part.width;
-             }
-             if (part.x + part.height < 0) {
+         }
+         if (part.x + part.height < 0) {
              part.x = VIEWPORT.width;
-             }
+         }
 
         if (Math.abs(block.vx) >= 512) {
             var random = Math.random();
@@ -385,7 +423,7 @@ var GameConditions = function() {
                 GRAVITY_Y = GRAVITY_Y * -1;
             }
         }
-
+        */
     }
 };
 
@@ -420,9 +458,11 @@ var Engine = function() {
 
 // Initialize here
 
+/*
 var block = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25, VIEWPORT.height / 2 - 25, Entity.DYNAMIC, "#0000ff", "#000000", 0, null, 0, 0, 0, 0);
 var green = new Entity("Green Block", 25, 25, Math.random() * VIEWPORT.width, Math.random() * VIEWPORT.height, Entity.DYNAMIC, "#00ff00", "#000000");
 var yellow = new Entity ("Yellow Block", 25, 25, Math.random() * VIEWPORT.width, Math.random() * VIEWPORT.height, Entity.DYNAMIC, "#ffff00", "#000000", 0, null, Math.random() * -100, Math.random() * -100);
+*/
 
 // Start the Engine
 Engine();

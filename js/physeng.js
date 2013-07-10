@@ -58,24 +58,28 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
         WORKSPACE.splice(location, 1);
     };
 
-    this.freeze = function(toggleColor) {
+    this.freeze = function(time, toggleColor) {
         this.frozen = true;
-        this.vx = 0;
-        this.vy = 0;
-        this.ax = 0;
-        this.ay = 0;
+        this.freezeTime = time || 5;
+        //this.vx = 0;
+        //this.vy = 0;
+        //this.ax = 0;
+        //this.ay = 0;
 
         if (toggleColor == true) {
-            this.lastOutlineColor = this.outlineColor;
-            this.lastFillColor = this.fillColor;
+            if (this.fillColor != "#00bbff" && this.outlineColor != "#005577") {
+                this.lastOutlineColor = this.outlineColor;
+                this.lastFillColor = this.fillColor;
 
-            this.fillColor = "#00bbff";
-            this.outlineColor = "#005577";
+                this.fillColor = "#00bbff";
+                this.outlineColor = "#005577";
+            }
         }
     };
 
     this.thaw = function() {
         this.frozen = false;
+        this.freezeTime = 0;
         this.fillColor = this.lastFillColor;
         this.outlineColor = this.lastOutlineColor;
     };
@@ -99,6 +103,7 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
 
     // Some state values for functions and such
     this.frozen = false;
+    this.freezeTime = 0;
     this.lastOutlineColor = this.outlineColor;
     this.lastFillColor = this.fillColor;
 
@@ -242,6 +247,21 @@ var DrawFrame = function() {
     var fpsText = 'FPS: ' + framesPerSecond;
     var fpsMeasurement = view.measureText(fpsText);
     view.fillText(fpsText, VIEWPORT.width - (fpsMeasurement.width) - 5, 15);
+
+    if (FREEZE_MODE == true) {
+        view.beginPath();
+        view.arc(MOUSE_X, MOUSE_Y, FREEZE_RADIUS, 0, 2*Math.PI, false);
+        view.closePath();
+
+        view.globalAlpha = 0.1;
+
+        view.fillStyle = "#00bbff";
+        view.strokeStyle = "#005577";
+        view.fill();
+        view.stroke();
+
+        view.globalAlpha = 1;
+    }
 };
 
 var Physics = function(delta) {
@@ -303,6 +323,14 @@ var Physics = function(delta) {
                     //alert("VY "+item.vy);
                 }();
             }
+            else {
+                item.vx = (item.ax * delta + item.vx) / 1.1;
+                item.vy = (item.ay * delta + item.vy) / 1.1;
+                item.freezeTime = item.freezeTime - delta;
+                if (item.freezeTime <= 0) {
+                    item.thaw();
+                }
+            }
 
             var Position = function() {
                 item.x = item.vx * delta + item.x;
@@ -336,17 +364,72 @@ var Physics = function(delta) {
         };
 }());
 
-document.ontouchstart = function(e) {
-    SLOW_TIME = true;
-};
+var MOUSE_X;
+var MOUSE_Y;
 
-document.ontouchend = function(e) {
-    SLOW_TIME = false;
-};
+var TOUCHES = [];
 
 document.ontouchmove = function(e) {
     e.preventDefault(); //Stop scrolling on iOS
     e.stopPropagation();
+    TOUCHES = e.changedTouches;
+
+    if (TOUCHES.length > 1) {
+        SLOW_TIME = true;
+        FREEZE_MODE = false;
+    }
+    else if (TOUCHES.length == 1) {
+        FREEZE_MODE = true;
+        MOUSE_X = TOUCHES[0].pageX * PIXEL_RATIO;
+        MOUSE_Y = TOUCHES[0].pageY * PIXEL_RATIO;
+    }
+    else if (TOUCHES.length = 0) {
+        SLOW_TIME = false;
+        FREEZE_MODE = false;
+    }
+};
+
+document.ontouchstart = function(e) {
+    TOUCHES = e.changedTouches;
+
+    if (TOUCHES.length > 1) {
+        SLOW_TIME = true;
+        FREEZE_MODE = false;
+    }
+    else if (TOUCHES.length == 1) {
+        FREEZE_MODE = true;
+        MOUSE_X = TOUCHES[0].pageX * PIXEL_RATIO;
+        MOUSE_Y = TOUCHES[0].pageY * PIXEL_RATIO;
+    }
+
+    //alert(TOUCHES[0].pageX + " " + TOUCHES[0].pageY + " " + SLOW_TIME + " " + FREEZE_MODE + " " + TOUCHES.length);
+
+};
+
+document.ontouchend = function(e) {
+    TOUCHES = e.changedTouches;
+
+    //alert(TOUCHES.length);
+
+    if (TOUCHES.length > 1) {
+        SLOW_TIME = true;
+        FREEZE_MODE = false;
+    }
+    else if (TOUCHES.length = 0) {
+        SLOW_TIME = false;
+        FREEZE_MODE = false;
+    }
+    else {
+        SLOW_TIME = false;
+        FREEZE_MODE = false;
+    }
+    /*
+    else if (TOUCHES.length == 1) {
+        FREEZE_MODE = true;
+        MOUSE_X = TOUCHES[0].pageX * PIXEL_RATIO;
+        MOUSE_Y = TOUCHES[0].pageY * PIXEL_RATIO;
+    }
+    */
 };
 
 window.ondevicemotion = function(event) {
@@ -356,6 +439,24 @@ window.ondevicemotion = function(event) {
 
     GRAVITY_X = devicex / 2;
     GRAVITY_Y = devicey / 2 * -1;
+
+    if (devicez > 8) {
+        GRAVITY_X = 0;
+        GRAVITY_Y = 0;
+    }
+};
+
+document.onmousemove = function(e) {
+    MOUSE_X = e.pageX;
+    MOUSE_Y = e.pageY;
+};
+
+document.onmousedown = function(e) {
+    FREEZE_MODE = true;
+};
+
+document.onmouseup = function(e) {
+    FREEZE_MODE = false;
 };
 
 document.onkeydown = function(e) {
@@ -410,8 +511,10 @@ document.onkeyup = function(e) {
     }
 };
 
-var GameConditions = function() {
+var FREEZE_MODE = false;
+var FREEZE_RADIUS = 50;
 
+var GameConditions = function() {
     //Work backwards so we can slice out items as we go
     for (var i = (WORKSPACE.length - 1); i >= 0; i--) {
         var part = WORKSPACE[i];
@@ -429,10 +532,14 @@ var GameConditions = function() {
             part.destroy();
         }
 
-        if (part.x < -200 || part.x > VIEWPORT.width + 200 || part.y > VIEWPORT.height + 200) {
-            //alert("Part is out of bounds!");
-        }
+        if (FREEZE_MODE == true) {
 
+            var distanceFromMouse = Math.abs(MOUSE_X - (part.x + (part.width / 2))) + Math.abs(MOUSE_Y - (part.y + (part.height / 2)));
+
+            if (distanceFromMouse <= FREEZE_RADIUS) {
+                part.freeze(20, true);
+            }
+        }
          /*
          if (part.y > VIEWPORT.height) {
              part.y = -part.height;
@@ -473,7 +580,7 @@ var Engine = function() {
     // Delta Capture
     var thisStep = new Date().getTime();
     var delta = (thisStep - lastStep) / 100 || thisStep - thisStep;
-    //console.log(delta);
+    console.log(delta);
     lastStep = thisStep;
 
     // Calculations

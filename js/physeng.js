@@ -9,12 +9,14 @@ var SETTLE_POINT = 0.001;
 // Positive values will move right or down.
 // Negative values will move left or up.
 var GRAVITY_X = 0;
-var GRAVITY_Y = 5;
+var GRAVITY_Y = 9.8;
+
+// Technical Gravitational values
 
 //These factors handle long key presses
-var GRAVITY_FACTOR_BASE = 0.3;
-var GRAVITY_X_FACTOR = 0;
-var GRAVITY_Y_FACTOR = 0;
+//var GRAVITY_FACTOR_BASE = 0.3;
+//var GRAVITY_X_FACTOR = 0;
+//var GRAVITY_Y_FACTOR = 9.8;
 
 var WORKSPACE = [];
 
@@ -45,7 +47,7 @@ setViewSize();
 window.addEventListener('resize', setViewSize);
 window.addEventListener('orientationchange', setViewSize);
 
-var BACKGROUND_COLOR = "#222244";
+var BACKGROUND_COLOR = "#ffffff"; // "#222244" for rain
 
 // A shortcut for drawing methods
 var view = BUFFER_CONTEXT;
@@ -185,6 +187,7 @@ var DrawFrame = function() {
             if (item.texture == null){
 
                 // Probably putting too much emphasis on these...
+                /*
                 var speed = TRAILS_BASE_SPEED;
                 var offset = 0.05; // Default 0.1
                 var alpha = 0.5; // Default 0.3
@@ -197,11 +200,12 @@ var DrawFrame = function() {
                     offset = offset + 0.1;
                     speed = speed * 2;
                 }
-                /*
+                */
+
                 trail(item, 32, 0.3, 0.1);
                 trail(item, 128, 0.2, 0.2);
                 trail(item, 512, 0.1, 0.3);
-                */
+
 
                 view.beginPath();
 
@@ -266,6 +270,8 @@ var DrawFrame = function() {
 
 var Physics = function(delta) {
 
+    /*
+
     //Add in factors for each tick
     GRAVITY_X += GRAVITY_X_FACTOR;
     GRAVITY_Y += GRAVITY_Y_FACTOR;
@@ -285,6 +291,8 @@ var Physics = function(delta) {
         GRAVITY_Y += 0.3;
     else if(GRAVITY_Y > 5)
         GRAVITY_Y -= 0.1;
+
+    */
 
     for (var i = 0; i < WORKSPACE.length; i++) {
 
@@ -316,12 +324,12 @@ var Physics = function(delta) {
 
              }();
              */
+
             if (item.frozen == false) {
-                var Velocity = function() {
-                    item.vx = item.ax * delta + item.vx + (GRAVITY_X * delta);
-                    item.vy = item.ay * delta + item.vy + (GRAVITY_Y * delta);
-                    //alert("VY "+item.vy);
-                }();
+                // Velocity
+                // Motion Equation of Velocity: v = v + a * t
+                item.vx = item.vx + item.ax * delta + GRAVITY_X * delta;
+                item.vy = item.vy + item.ay * delta + GRAVITY_Y * delta;
             }
             else {
                 item.vx = (item.ax * delta + item.vx) / 1.1;
@@ -332,10 +340,10 @@ var Physics = function(delta) {
                 }
             }
 
-            var Position = function() {
-                item.x = item.vx * delta + item.x;
-                item.y = item.vy * delta + item.y;
-            }();
+            // Positioning
+            // Motion Equation of Position: x = x + v * t + 1/2 * a * t^2
+            item.x = item.x + (item.vx * delta) + ((0.5 * item.ax) * (delta * delta));
+            item.y = item.y + (item.vy * delta) + ((0.5 * item.ay) * (delta * delta));
         }
      }
 };
@@ -519,6 +527,8 @@ var GameConditions = function() {
     for (var i = (WORKSPACE.length - 1); i >= 0; i--) {
         var part = WORKSPACE[i];
 
+        /*
+
         if (part.y > VIEWPORT.height + 150) {
             part.destroy();
         }
@@ -540,7 +550,9 @@ var GameConditions = function() {
                 part.freeze(20, true);
             }
         }
-         /*
+
+        */
+
          if (part.y > VIEWPORT.height) {
              part.y = -part.height;
          }
@@ -567,12 +579,12 @@ var GameConditions = function() {
                 GRAVITY_Y = GRAVITY_Y * -1;
             }
         }
-        */
+
     }
 };
 
 var SLOW_TIME = false;
-var SLOW_TIME_FACTOR = 3;
+var SLOW_TIME_FACTOR = 10;
 
 var lastStep;
 
@@ -580,7 +592,7 @@ var Engine = function() {
     // Delta Capture
     var thisStep = new Date().getTime();
     var delta = (thisStep - lastStep) / 100 || thisStep - thisStep;
-    console.log(delta);
+    //console.log(delta);
     lastStep = thisStep;
 
     // Calculations
@@ -603,11 +615,11 @@ var Engine = function() {
 
 // Initialize here
 
-/*
+
 var block = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25, VIEWPORT.height / 2 - 25, Entity.DYNAMIC, "#0000ff", "#000000", 0, null, 0, 0, 0, 0);
 var green = new Entity("Green Block", 25, 25, Math.random() * VIEWPORT.width, Math.random() * VIEWPORT.height, Entity.DYNAMIC, "#00ff00", "#000000");
 var yellow = new Entity ("Yellow Block", 25, 25, Math.random() * VIEWPORT.width, Math.random() * VIEWPORT.height, Entity.DYNAMIC, "#ffff00", "#000000", 0, null, Math.random() * -100, Math.random() * -100);
-*/
+
 
 // Start the Engine
 Engine();

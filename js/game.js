@@ -1,5 +1,6 @@
 // Insert game generation code here...
 
+/*
 
 function randomInt(min, max){
     return Math.max(min, Math.round(Math.random() * max));
@@ -33,4 +34,6 @@ var generateRain = function() {
     requestAnimationFrame(generateRain);
 };
 generateRain(); //Kick it off
+
+*/
 

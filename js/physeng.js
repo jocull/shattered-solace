@@ -440,6 +440,7 @@ document.ontouchend = function(e) {
 };
 
 window.ondevicemotion = function(event) {
+    /*
     devicex = event.accelerationIncludingGravity.x;
     devicey = event.accelerationIncludingGravity.y;
     devicez = event.accelerationIncludingGravity.z;
@@ -451,6 +452,7 @@ window.ondevicemotion = function(event) {
         GRAVITY_X = 0;
         GRAVITY_Y = 0;
     }
+    */
 };
 
 document.onmousemove = function(e) {

@@ -302,11 +302,21 @@ var Physics = function(delta) {
                             var civy = collider.vy; // collider initial velocity y
 
 
+
                             item.vx = (((item.mass * iivx) + (collider.mass * civx) + (collider.mass * crx * (iivx - civx)))) / (item.mass + collider.mass);
                             item.vy = (((item.mass * iivy) + (collider.mass * civy) + (collider.mass * cry * (iivy - civy)))) / (item.mass + collider.mass);
 
                             collider.vx = (((collider.mass * civx) + (item.mass * iivx) + (item.mass * crx * (civx - iivx)))) / (collider.mass + item.mass);
                             collider.vy = (((collider.mass * civy) + (item.mass * iivy) + (item.mass * cry * (civy - iivy)))) / (collider.mass + item.mass);
+
+                            // This positional skip keeps parts from detecting an additional collision
+                            // from the collider due to a missing change in position.
+
+                            item.x = item.x + (item.vx * delta);
+                            item.y = item.y + (item.vy * delta);
+
+                            collider.x = collider.x + (collider.vx * delta);
+                            collider.y = collider.y + (collider.vy * delta);
                         }
                     }
                 }
@@ -631,6 +641,9 @@ var subject3 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 - 50, VIEWP
 
 var block4 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 - 250, VIEWPORT.height / 2 - 25 - 0, Entity.DYNAMIC, "#0000ff", "#000000", null, 0, 0, 0, 0);
 var subject4 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 - 150, VIEWPORT.height / 2 - 25 + 0, Entity.DYNAMIC, "#000000", "#000000", null, -5, -2, 0, 0);
+
+var block5 = new Entity("Big", 100, 100, VIEWPORT.width / 2 - 25 + 250, VIEWPORT.height / 2 - 25 - 0, Entity.DYNAMIC, "#0000ff", "#000000", null, 0, 0, 0, 0);
+var subject5 = new Entity("Small", 25, 25, VIEWPORT.width / 2 - 12.5 + 275, VIEWPORT.height / 2 - 25 - 175, Entity.DYNAMIC, "#000000", "#000000", null, 0, 5, 0, 0);
 
 // Start the Engine
 Engine();

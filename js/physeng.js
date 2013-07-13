@@ -9,9 +9,7 @@ var SETTLE_POINT = 0.001;
 // Positive values will move right or down.
 // Negative values will move left or up.
 var GRAVITY_X = 0;
-var GRAVITY_Y = 9.8;
-
-// Technical Gravitational values
+var GRAVITY_Y = 0; // 9.8 m/s^2 is Earth gravity
 
 //These factors handle long key presses
 //var GRAVITY_FACTOR_BASE = 0.3;
@@ -52,7 +50,7 @@ var BACKGROUND_COLOR = "#ffffff"; // "#222244" for rain
 // A shortcut for drawing methods
 var view = BUFFER_CONTEXT;
 
-var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, elasticity, texture, vx, vy, ax, ay) {
+var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, texture, vx, vy, ax, ay) {
 
     this.destroy = function() {
         var location = WORKSPACE.indexOf(this);
@@ -95,13 +93,11 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
     this.vy = vy || 0;
     this.ax = ax || 0;
     this.ay = ay || 0;
-    this.mass = this.width * this.height;
-    this.elasticity = elasticity || 0.2;
+    this.mass = (this.width * this.height);
     this.fillColor = fillColor || "#ffffff";
     this.outlineColor = outlineColor || "#000000";
     this.texture = texture || null;
     this.type = type || Entity.DYNAMIC;
-    //this.collideType = collideType || Entity.DISPLACE;
 
     // Some state values for functions and such
     this.frozen = false;
@@ -113,21 +109,16 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
 
 };
 
-// Kinematic entities are not affected by gravity,
-// and will not allow the solver to solve these elements.
-// Collides, but isn't affected by collisions or gravity.
-Entity.KINEMATIC = "kinematic";
-
-// Dynamic entities will constantly be changing and are
-// affected by all aspects of the physics engine
+// Dynamic entities are affected by all aspects of
+// the physics engine.
 Entity.DYNAMIC = "dynamic";
 
-// Static entities are not affected by collisions
-// and do not move.
-Entity.STATIC = "static";
+// Kinematic entities collide but are not affected by
+// collisions or gravity.
+Entity.KINEMATIC = "kinematic";
 
-// Phantom entities do not collide with other objects
-// and may move.
+// Phantom entities do not collide nor are affected
+// by collisions.
 Entity.PHANTOM = "phantom";
 
 // Track FPS
@@ -138,16 +129,6 @@ setInterval(function(){
     framesSinceLastTick = 0;
 }, 1000);
 
-/*
-// The displace resolution will only move an entity outside
-// of the space of the other and zero the velocity in that direction
-Entity.DISPLACE = "displace";
-
-// The elastic resolution will displace and also bounce the
-// colliding entity off by reducing the velocity by its
-// restitution coefficient
-Entity.ELASTIC = "elastic";
-*/
 var DrawFrame = function() {
 
     // Clear the view
@@ -269,64 +250,73 @@ var DrawFrame = function() {
 };
 
 var Physics = function(delta) {
-
-    /*
-
-    //Add in factors for each tick
-    GRAVITY_X += GRAVITY_X_FACTOR;
-    GRAVITY_Y += GRAVITY_Y_FACTOR;
-
-    //Limit the maximum gravity adjustment
-    GRAVITY_X = Math.min(10, GRAVITY_X);
-    GRAVITY_X = Math.max(-10, GRAVITY_X);
-    GRAVITY_Y = Math.min(20, GRAVITY_Y);
-    GRAVITY_Y = Math.max(-10, GRAVITY_Y);
-
-    //Naturally gravitate towards the middle
-    if(GRAVITY_X < 0)
-        GRAVITY_X += 0.1;
-    else if(GRAVITY_X > 0)
-        GRAVITY_X -= 0.1;
-    if(GRAVITY_Y < 5)
-        GRAVITY_Y += 0.3;
-    else if(GRAVITY_Y > 5)
-        GRAVITY_Y -= 0.1;
-
-    */
-
     for (var i = 0; i < WORKSPACE.length; i++) {
 
         if (WORKSPACE[i] != null) {
             var item = WORKSPACE[i];
 
-            var Settle = function() {
-                if (Math.abs(item.ax) <= SETTLE_POINT) {
-                    item.ax = 0;
-                }
-                if (Math.abs(item.ay) <= SETTLE_POINT) {
-                    item.ay = 0;
-                }
-                if (Math.abs(item.vx) <= SETTLE_POINT) {
-                    item.vx = 0;
-                }
-                if (Math.abs(item.vy) <= SETTLE_POINT) {
-                    item.vy = 0;
-                }
-            }();
-            /*
-             var Collisions = function() {
-             for (var i2 = 0; i2 < WORKSPACE.length; i++) {
-             var collider = WORKSPACE[i2];
-             if (collider != item) {
-             // Collision parameters
-             }
-             }
+        // Calculate positioning
 
-             }();
-             */
+            // Motion Equation of Position: x = x + v * t + 1/2 * a * t^2
+            item.x = item.x + (item.vx * delta) + ((0.5 * item.ax) * (delta * delta));
+            item.y = item.y + (item.vy * delta) + ((0.5 * item.ay) * (delta * delta));
 
+        // Detect collisions
+
+            for (var i2 = 0; i2 < WORKSPACE.length; i2 ++) {
+                if (WORKSPACE[i2] != null && WORKSPACE[i2] != item) {
+                    var collider = WORKSPACE[i2];
+
+                    if (collider.type != Entity.PHANTOM) {
+                        if ((item.x + item.width > collider.x && item.x < collider.x + collider.width)
+                            && (item.y + item.height > collider.y && item.y < collider.y + collider.height)) {
+
+        // Resolve collisions
+
+                            // Collision Equation: va = (cr * mb * (vb - va) + ma * va + mb * vb) / ma + mb
+                            // Equation of the coefficient of restitution: cr = (vb - va) / (ua - ub)
+
+                            // Calculate the coefficients of restitution
+                            var crx;
+                            var cry;
+
+                            // To avoid NaN results...
+                            if (item.vx - collider.vx == 0) {
+                                crx = 0;
+                            }
+                            else {
+                                crx = (collider.vx - item.vx) / (item.vx - collider.vx);
+                            }
+
+                            if (item.vy - collider.vy == 0) {
+                                cry = 0;
+                            }
+                            else {
+                                cry = (collider.vy - item.vy) / (item.vy - collider.vy);
+                            }
+
+                            var iivx = item.vx; // item initial velocity x
+                            var civx = collider.vx; // collider initial velocity x
+
+                            var iivy = item.vy; // item initial velocity y
+                            var civy = collider.vy; // collider initial velocity y
+
+
+                            item.vx = (((item.mass * iivx) + (collider.mass * civx) + (collider.mass * crx * (iivx - civx)))) / (item.mass + collider.mass);
+                            item.vy = (((item.mass * iivy) + (collider.mass * civy) + (collider.mass * cry * (iivy - civy)))) / (item.mass + collider.mass);
+
+                            collider.vx = (((collider.mass * civx) + (item.mass * iivx) + (item.mass * crx * (civx - iivx)))) / (collider.mass + item.mass);
+                            collider.vy = (((collider.mass * civy) + (item.mass * iivy) + (item.mass * cry * (civy - iivy)))) / (collider.mass + item.mass);
+                        }
+                    }
+                }
+            }
+
+        // Complete motion data
+
+            // Velocity
             if (item.frozen == false) {
-                // Velocity
+
                 // Motion Equation of Velocity: v = v + a * t
                 item.vx = item.vx + item.ax * delta + GRAVITY_X * delta;
                 item.vy = item.vy + item.ay * delta + GRAVITY_Y * delta;
@@ -340,10 +330,19 @@ var Physics = function(delta) {
                 }
             }
 
-            // Positioning
-            // Motion Equation of Position: x = x + v * t + 1/2 * a * t^2
-            item.x = item.x + (item.vx * delta) + ((0.5 * item.ax) * (delta * delta));
-            item.y = item.y + (item.vy * delta) + ((0.5 * item.ay) * (delta * delta));
+            // Settle
+            if (Math.abs(item.ax) <= SETTLE_POINT) {
+                item.ax = 0;
+            }
+            if (Math.abs(item.ay) <= SETTLE_POINT) {
+                item.ay = 0;
+            }
+            if (Math.abs(item.vx) <= SETTLE_POINT) {
+                item.vx = 0;
+            }
+            if (Math.abs(item.vy) <= SETTLE_POINT) {
+                item.vy = 0;
+            }
         }
      }
 };
@@ -541,6 +540,7 @@ var GameConditions = function() {
         if (part.x + part.height < -150) {
             part.destroy();
         }
+        */
 
         if (FREEZE_MODE == true) {
 
@@ -551,21 +551,23 @@ var GameConditions = function() {
             }
         }
 
+
+        /*
+        if (part.y > VIEWPORT.height) {
+            part.y = -part.height;
+        }
+        if (part.y + part.height < 0) {
+            part.y = VIEWPORT.height;
+        }
+        if (part.x > VIEWPORT.width) {
+            part.x = -part.width;
+        }
+        if (part.x + part.height < 0) {
+            part.x = VIEWPORT.width;
+        }
         */
 
-         if (part.y > VIEWPORT.height) {
-             part.y = -part.height;
-         }
-         if (part.y + part.height < 0) {
-             part.y = VIEWPORT.height;
-         }
-         if (part.x > VIEWPORT.width) {
-             part.x = -part.width;
-         }
-         if (part.x + part.height < 0) {
-             part.x = VIEWPORT.width;
-         }
-
+        /*
         if (Math.abs(block.vx) >= 512) {
             var random = Math.random();
             if (random > 0.5) {
@@ -574,11 +576,12 @@ var GameConditions = function() {
         }
 
         if (Math.abs(block.vy) >= 512) {
-            var random = Math.random();
-            if (random > 0.5) {
+            var random2 = Math.random();
+            if (random2 > 0.5) {
                 GRAVITY_Y = GRAVITY_Y * -1;
             }
         }
+        */
 
     }
 };
@@ -615,11 +618,17 @@ var Engine = function() {
 
 // Initialize here
 
+var block = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", null, 0, 0, 0, 0);
+var subject = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", null, 0, -5, 0, 0);
 
-var block = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25, VIEWPORT.height / 2 - 25, Entity.DYNAMIC, "#0000ff", "#000000", 0, null, 0, 0, 0, 0);
-var green = new Entity("Green Block", 25, 25, Math.random() * VIEWPORT.width, Math.random() * VIEWPORT.height, Entity.DYNAMIC, "#00ff00", "#000000");
-var yellow = new Entity ("Yellow Block", 25, 25, Math.random() * VIEWPORT.width, Math.random() * VIEWPORT.height, Entity.DYNAMIC, "#ffff00", "#000000", 0, null, Math.random() * -100, Math.random() * -100);
+var block2 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 + 50, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", null, 0, 3, 0, 0);
+var subject2 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 + 50, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", null, 0, -5, 0, 0);
 
+var block3 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 - 50, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", null, 0, 5, 0, 0);
+var subject3 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 - 50, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", null, 0, -5, 0, 0);
+
+var block4 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 - 250, VIEWPORT.height / 2 - 25 - 0, Entity.DYNAMIC, "#0000ff", "#000000", null, 0, 0, 0, 0);
+var subject4 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 - 150, VIEWPORT.height / 2 - 25 + 0, Entity.DYNAMIC, "#000000", "#000000", null, -5, -2, 0, 0);
 
 // Start the Engine
 Engine();

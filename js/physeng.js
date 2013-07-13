@@ -228,7 +228,7 @@ var DrawFrame = function() {
     // Draw the FPS
     framesSinceLastTick++;
     view.font = '14px Arial';
-    view.fillStyle = '#fff';
+    view.fillStyle = '#000000';
     var fpsText = 'FPS: ' + framesPerSecond;
     var fpsMeasurement = view.measureText(fpsText);
     view.fillText(fpsText, VIEWPORT.width - (fpsMeasurement.width) - 5, 15);

@@ -50,7 +50,7 @@ var BACKGROUND_COLOR = "#ffffff"; // "#222244" for rain
 // A shortcut for drawing methods
 var view = BUFFER_CONTEXT;
 
-var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, texture, vx, vy, ax, ay) {
+var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, elasticity, texture, vx, vy, ax, ay) {
 
     this.destroy = function() {
         var location = WORKSPACE.indexOf(this);
@@ -94,6 +94,7 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
     this.ax = ax || 0;
     this.ay = ay || 0;
     this.mass = (this.width * this.height);
+    this.elasticity = Math.abs(elasticity) || 1; // We don't want the elasticity to be negative, because then objects will move through each other.
     this.fillColor = fillColor || "#ffffff";
     this.outlineColor = outlineColor || "#000000";
     this.texture = texture || null;
@@ -301,13 +302,11 @@ var Physics = function(delta) {
                             var iivy = item.vy; // item initial velocity y
                             var civy = collider.vy; // collider initial velocity y
 
+                            item.vx = (((item.mass * iivx) + (collider.mass * civx) + (collider.mass * (item.elasticity * crx) * (iivx - civx)))) / (item.mass + collider.mass);
+                            item.vy = (((item.mass * iivy) + (collider.mass * civy) + (collider.mass * (item.elasticity * cry) * (iivy - civy)))) / (item.mass + collider.mass);
 
-
-                            item.vx = (((item.mass * iivx) + (collider.mass * civx) + (collider.mass * crx * (iivx - civx)))) / (item.mass + collider.mass);
-                            item.vy = (((item.mass * iivy) + (collider.mass * civy) + (collider.mass * cry * (iivy - civy)))) / (item.mass + collider.mass);
-
-                            collider.vx = (((collider.mass * civx) + (item.mass * iivx) + (item.mass * crx * (civx - iivx)))) / (collider.mass + item.mass);
-                            collider.vy = (((collider.mass * civy) + (item.mass * iivy) + (item.mass * cry * (civy - iivy)))) / (collider.mass + item.mass);
+                            collider.vx = (((collider.mass * civx) + (item.mass * iivx) + (item.mass * (collider.elasticity * crx) * (civx - iivx)))) / (collider.mass + item.mass);
+                            collider.vy = (((collider.mass * civy) + (item.mass * iivy) + (item.mass * (collider.elasticity * cry) * (civy - iivy)))) / (collider.mass + item.mass);
 
                             // This positional skip keeps parts from detecting an additional collision
                             // from the collider due to a missing change in position.
@@ -538,22 +537,6 @@ var GameConditions = function() {
     for (var i = (WORKSPACE.length - 1); i >= 0; i--) {
         var part = WORKSPACE[i];
 
-        /*
-
-        if (part.y > VIEWPORT.height + 150) {
-            part.destroy();
-        }
-        if (part.y + part.height < -150) {
-            part.destroy();
-        }
-        if (part.x > VIEWPORT.width + 150) {
-            part.destroy();
-        }
-        if (part.x + part.height < -150) {
-            part.destroy();
-        }
-        */
-
         if (FREEZE_MODE == true) {
 
             var distanceFromMouse = Math.abs(MOUSE_X - (part.x + (part.width / 2))) + Math.abs(MOUSE_Y - (part.y + (part.height / 2)));
@@ -562,22 +545,6 @@ var GameConditions = function() {
                 part.freeze(20, true);
             }
         }
-
-
-        /*
-        if (part.y > VIEWPORT.height) {
-            part.y = -part.height;
-        }
-        if (part.y + part.height < 0) {
-            part.y = VIEWPORT.height;
-        }
-        if (part.x > VIEWPORT.width) {
-            part.x = -part.width;
-        }
-        if (part.x + part.height < 0) {
-            part.x = VIEWPORT.width;
-        }
-        */
 
         /*
         if (Math.abs(block.vx) >= 512) {
@@ -599,7 +566,7 @@ var GameConditions = function() {
 };
 
 var SLOW_TIME = false;
-var SLOW_TIME_FACTOR = 10;
+var SLOW_TIME_FACTOR = 4;
 
 var lastStep;
 
@@ -607,7 +574,6 @@ var Engine = function() {
     // Delta Capture
     var thisStep = new Date().getTime();
     var delta = (thisStep - lastStep) / 100 || thisStep - thisStep;
-    //console.log(delta);
     lastStep = thisStep;
 
     // Calculations
@@ -630,20 +596,20 @@ var Engine = function() {
 
 // Initialize here
 
-var block = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", null, 0, 0, 0, 0);
-var subject = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", null, 0, -5, 0, 0);
+var block = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 0, 0, 0);
+var subject = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, null, 0, -5, 0, 0);
 
-var block2 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 + 50, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", null, 0, 3, 0, 0);
-var subject2 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 + 50, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", null, 0, -5, 0, 0);
+var block2 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 + 50, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 3, 0, 0);
+var subject2 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 + 50, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, null, 0, -5, 0, 0);
 
-var block3 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 - 50, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", null, 0, 5, 0, 0);
-var subject3 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 - 50, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", null, 0, -5, 0, 0);
+var block3 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 - 50, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 5, 0, 0);
+var subject3 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 - 50, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, null, 0, -5, 0, 0);
 
-var block4 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 - 250, VIEWPORT.height / 2 - 25 - 0, Entity.DYNAMIC, "#0000ff", "#000000", null, 0, 0, 0, 0);
-var subject4 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 - 150, VIEWPORT.height / 2 - 25 + 0, Entity.DYNAMIC, "#000000", "#000000", null, -5, -2, 0, 0);
+var block4 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 - 250, VIEWPORT.height / 2 - 25 - 0, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 0, 0, 0);
+var subject4 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 - 150, VIEWPORT.height / 2 - 25 + 0, Entity.DYNAMIC, "#000000", "#000000", 1, null, -5, -2, 0, 0);
 
-var block5 = new Entity("Big", 100, 100, VIEWPORT.width / 2 - 25 + 250, VIEWPORT.height / 2 - 25 - 0, Entity.DYNAMIC, "#0000ff", "#000000", null, 0, 0, 0, 0);
-var subject5 = new Entity("Small", 25, 25, VIEWPORT.width / 2 - 12.5 + 275, VIEWPORT.height / 2 - 25 - 175, Entity.DYNAMIC, "#000000", "#000000", null, 0, 5, 0, 0);
+var block5 = new Entity("Big", 100, 100, VIEWPORT.width / 2 - 25 + 250, VIEWPORT.height / 2 - 25 - 0, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 0, 0, 0);
+var subject5 = new Entity("Small", 25, 25, VIEWPORT.width / 2 - 12.5 + 275, VIEWPORT.height / 2 - 25 - 175, Entity.DYNAMIC, "#000000", "#000000", 1, null, 0, 5, 0, 0);
 
 // Start the Engine
 Engine();

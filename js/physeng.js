@@ -93,12 +93,18 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
     this.vy = vy || 0;
     this.ax = ax || 0;
     this.ay = ay || 0;
-    this.mass = (this.width * this.height);
+
     this.elasticity = Math.abs(elasticity) || 1; // We don't want the elasticity to be negative, because then objects will move through each other.
     this.fillColor = fillColor || "#ffffff";
     this.outlineColor = outlineColor || "#000000";
     this.texture = texture || null;
     this.type = type || Entity.DYNAMIC;
+    if (this.type == Entity.KINEMATIC) {
+        this.mass = 9007199254740992; // JavaScript's largest value.
+    }
+    else {
+        this.mass = (this.width * this.height);
+    }
 
     // Some state values for functions and such
     this.frozen = false;
@@ -263,7 +269,7 @@ var Physics = function(delta) {
             item.y = item.y + (item.vy * delta) + ((0.5 * item.ay) * (delta * delta));
 
         // Detect collisions
-
+            if (item.type != Entity.PHANTOM) {
             for (var i2 = 0; i2 < WORKSPACE.length; i2 ++) {
                 if (WORKSPACE[i2] != null && WORKSPACE[i2] != item) {
                     var collider = WORKSPACE[i2];
@@ -302,41 +308,56 @@ var Physics = function(delta) {
                             var iivy = item.vy; // item initial velocity y
                             var civy = collider.vy; // collider initial velocity y
 
+                            if (item.type != Entity.KINEMATIC || (item.type == Entity.KINEMATIC && collider.type == Entity.KINEMATIC)) {
                             item.vx = (((item.mass * iivx) + (collider.mass * civx) + (collider.mass * (item.elasticity * crx) * (iivx - civx)))) / (item.mass + collider.mass);
                             item.vy = (((item.mass * iivy) + (collider.mass * civy) + (collider.mass * (item.elasticity * cry) * (iivy - civy)))) / (item.mass + collider.mass);
+                            }
 
+                            if (collider.type != Entity.KINEMATIC || (item.type == Entity.KINEMATIC && collider.type == Entity.KINEMATIC)) {
                             collider.vx = (((collider.mass * civx) + (item.mass * iivx) + (item.mass * (collider.elasticity * crx) * (civx - iivx)))) / (collider.mass + item.mass);
                             collider.vy = (((collider.mass * civy) + (item.mass * iivy) + (item.mass * (collider.elasticity * cry) * (civy - iivy)))) / (collider.mass + item.mass);
+                            }
+
+                            // Enable this to ensure that energy stays at a constant.
+                            console.log((iivy * item.mass + civy * item.mass) + " = " + (item.vy * item.mass + collider.vy * collider.mass));
 
                             // This positional skip keeps parts from detecting an additional collision
                             // from the collider due to a missing change in position.
 
+
+                            if (item.type != Entity.KINEMATIC || (item.type == Entity.KINEMATIC && collider.type == Entity.KINEMATIC)) {
                             item.x = item.x + (item.vx * delta);
                             item.y = item.y + (item.vy * delta);
+                            }
 
+                            if (collider.type != Entity.KINEMATIC || (item.type == Entity.KINEMATIC && collider.type == Entity.KINEMATIC)) {
                             collider.x = collider.x + (collider.vx * delta);
                             collider.y = collider.y + (collider.vy * delta);
+                            }
                         }
                     }
                 }
+            }
             }
 
         // Complete motion data
 
             // Velocity
-            if (item.frozen == false) {
-
-                // Motion Equation of Velocity: v = v + a * t
-                item.vx = item.vx + item.ax * delta + GRAVITY_X * delta;
-                item.vy = item.vy + item.ay * delta + GRAVITY_Y * delta;
+            if (item.type == Entity.KINEMATIC) {
+                item.vx = item.vx + item.ax * delta;
             }
-            else {
+            else if (item.frozen == true) {
                 item.vx = (item.ax * delta + item.vx) / 1.1;
                 item.vy = (item.ay * delta + item.vy) / 1.1;
                 item.freezeTime = item.freezeTime - delta;
                 if (item.freezeTime <= 0) {
                     item.thaw();
                 }
+            }
+            else {
+                // Motion Equation of Velocity: v = v + a * t
+                item.vx = item.vx + item.ax * delta + GRAVITY_X * delta;
+                item.vy = item.vy + item.ay * delta + GRAVITY_Y * delta;
             }
 
             // Settle
@@ -470,7 +491,18 @@ document.onmousemove = function(e) {
 };
 
 document.onmousedown = function(e) {
-    FREEZE_MODE = true;
+    switch (e.which) {
+        case 1:
+            FREEZE_MODE = true;
+            // Left mouse button
+            break;
+        case 2:
+            // Middle mouse button
+            break;
+        case 3:
+            // Right mouse button
+            break;
+    }
 };
 
 document.onmouseup = function(e) {
@@ -483,19 +515,15 @@ document.onkeydown = function(e) {
     //console.log('KEY DOWN: ' + key);
     if (key == "87" || key == "38") {
         // W or UP key
-        GRAVITY_Y_FACTOR = -(GRAVITY_FACTOR_BASE * 1.5);
     }
     if (key == "65" || key == "37") {
         // A or LEFT key
-        GRAVITY_X_FACTOR = -(GRAVITY_FACTOR_BASE);
     }
     if (key == "83" || key == "40") {
         // S or DOWN key
-        GRAVITY_Y_FACTOR = GRAVITY_FACTOR_BASE;
     }
     if (key == "68" || key == "39") {
         // D or RIGHT key
-        GRAVITY_X_FACTOR = GRAVITY_FACTOR_BASE;
     }
     if (key == "32") {
         // Spacebar
@@ -509,19 +537,15 @@ document.onkeyup = function(e) {
     //console.log('KEY UP: ' + key);
     if (key == "87" || key == "38") {
         // W or UP key
-        GRAVITY_Y_FACTOR = 0;
     }
     if (key == "65" || key == "37") {
         // A or LEFT key
-        GRAVITY_X_FACTOR = 0;
     }
     if (key == "83" || key == "40") {
         // S or DOWN key
-        GRAVITY_Y_FACTOR = 0;
     }
     if (key == "68" || key == "39") {
         // D or RIGHT key
-        GRAVITY_X_FACTOR = 0;
     }
     if (key == "32") {
         // Spacebar
@@ -596,8 +620,8 @@ var Engine = function() {
 
 // Initialize here
 
-var block = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 0, 0, 0);
-var subject = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, null, 0, -5, 0, 0);
+var block = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#ff00ff", "#000000", 2, null, 0, 0, 0, 0);
+var subject = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#ff0000", "#000000", 2, null, 0, -5, 0, 0);
 
 var block2 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 + 50, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 3, 0, 0);
 var subject2 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 + 50, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, null, 0, -5, 0, 0);
@@ -610,6 +634,9 @@ var subject4 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 - 150, VIEW
 
 var block5 = new Entity("Big", 100, 100, VIEWPORT.width / 2 - 25 + 250, VIEWPORT.height / 2 - 25 - 0, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 0, 0, 0);
 var subject5 = new Entity("Small", 25, 25, VIEWPORT.width / 2 - 12.5 + 275, VIEWPORT.height / 2 - 25 - 175, Entity.DYNAMIC, "#000000", "#000000", 1, null, 0, 5, 0, 0);
+
+var drop = new Entity("Drop", 50, 50, VIEWPORT.width / 2 - 25 - 251, VIEWPORT.height / 2 + 125 - 50, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 5, 0, 0);
+var plate = new Entity("Plate", 100, 5, VIEWPORT.width / 2 - 50 - 250, VIEWPORT.height / 2 + 250 - 0, Entity.KINEMATIC, "#00ff00", "#000000", 1, null, 0, 0, 0, 0);
 
 // Start the Engine
 Engine();

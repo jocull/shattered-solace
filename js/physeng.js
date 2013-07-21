@@ -2,7 +2,7 @@
 
 // If an object's velocity is nearing this number, then its
 // velocity will be set to 0.
-var SETTLE_POINT = 0.001;
+var SETTLE_POINT = 0.5;
 
 // The world's X and Y gravity values.
 // Measured in seconds, i.e., 10 pixels per second.
@@ -11,15 +11,7 @@ var SETTLE_POINT = 0.001;
 var GRAVITY_X = 0;
 var GRAVITY_Y = 0; // 9.8 m/s^2 is Earth gravity
 
-//These factors handle long key presses
-//var GRAVITY_FACTOR_BASE = 0.3;
-//var GRAVITY_X_FACTOR = 0;
-//var GRAVITY_Y_FACTOR = 9.8;
-
 var WORKSPACE = [];
-
-var NUMBER_OF_TRAILS = 3;
-var TRAILS_BASE_SPEED = 2;
 
 // Engine Output
 
@@ -45,13 +37,14 @@ setViewSize();
 window.addEventListener('resize', setViewSize);
 window.addEventListener('orientationchange', setViewSize);
 
-var BACKGROUND_COLOR = "#ffffff"; // "#222244" for rain
+var BACKGROUND_COLOR = "#ffffff";
 
 // A shortcut for drawing methods
 var view = BUFFER_CONTEXT;
 
 var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, elasticity, texture, vx, vy, ax, ay) {
 
+    // Object functions
     this.destroy = function() {
         var location = WORKSPACE.indexOf(this);
 
@@ -84,6 +77,7 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
         this.outlineColor = this.lastOutlineColor;
     };
 
+    // Object properties
     this.name = name || "Object";
     this.width = width || 50;
     this.height = height || 50;
@@ -94,13 +88,13 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
     this.ax = ax || 0;
     this.ay = ay || 0;
 
-    this.elasticity = Math.abs(elasticity) || 1; // We don't want the elasticity to be negative, because then objects will move through each other.
+    this.elasticity = Math.abs(elasticity) || 0.5; // We don't want the elasticity to be negative, because then objects will move through each other.
     this.fillColor = fillColor || "#ffffff";
     this.outlineColor = outlineColor || "#000000";
     this.texture = texture || null;
     this.type = type || Entity.DYNAMIC;
     if (this.type == Entity.KINEMATIC) {
-        this.mass = 9007199254740992; // JavaScript's largest value.
+        this.mass = 9007199254740992; // JavaScript's largest value that is not Infinity.
     }
     else {
         this.mass = (this.width * this.height);
@@ -144,7 +138,11 @@ var DrawFrame = function() {
 
     for (var i = 0; i < WORKSPACE.length; i++) {
 
-        if (WORKSPACE[i]) {
+        if (WORKSPACE[i] &&
+            WORKSPACE[i].x < VIEWPORT.width &&
+            WORKSPACE[i].x + WORKSPACE[i].width > 0 &&
+            WORKSPACE[i].y < VIEWPORT.height &&
+            WORKSPACE[i].y + WORKSPACE[i].width > 0) {
             var item = WORKSPACE[i];
             var trail = function(item, speed, alpha, offset) {
                 if (Math.abs(item.vx) + Math.abs(item.vy) > speed) {
@@ -154,41 +152,33 @@ var DrawFrame = function() {
                     var offsetx = item.vx * offset;
                     var offsety = item.vy * offset;
 
-                    view.beginPath();
+                    if (item.texture == null) {
+                        view.beginPath();
 
-                    view.moveTo(item.x - offsetx, item.y - offsety);
-                    view.lineTo(item.x - offsetx, item.y + item.height - offsety);
-                    view.lineTo(item.x + item.width - offsetx, item.y + item.height - offsety);
-                    view.lineTo(item.x + item.width - offsetx, item.y - offsety);
-                    view.lineTo(item.x - offsetx, item.y - offsety);
-                    view.closePath();
+                        view.moveTo(item.x - offsetx, item.y - offsety);
+                        view.lineTo(item.x - offsetx, item.y + item.height - offsety);
+                        view.lineTo(item.x + item.width - offsetx, item.y + item.height - offsety);
+                        view.lineTo(item.x + item.width - offsetx, item.y - offsety);
+                        view.lineTo(item.x - offsetx, item.y - offsety);
+                        view.closePath();
 
-                    view.fillStyle = item.fillColor;
-                    //view.strokeStyle = item.outlineColor;
-                    view.fill();
-                    //view.stroke();
+                        view.fillStyle = item.fillColor;
+                        //view.strokeStyle = item.outlineColor;
+                        view.fill();
+                        //view.stroke();
+                    }
+                    else {
+                        var texture = new Image();
+                        texture.src = item.texture;
+
+                        view.drawImage(texture, item.x - offsetx, item.y - offsety, item.width, item.height);
+                    }
 
                     view.globalAlpha = 1.0;
                 }
             };
 
             if (item.texture == null){
-
-                // Probably putting too much emphasis on these...
-                /*
-                var speed = TRAILS_BASE_SPEED;
-                var offset = 0.05; // Default 0.1
-                var alpha = 0.5; // Default 0.3
-                for (var i2 = 0; i2 < NUMBER_OF_TRAILS; i2++) {
-
-                    newAlpha = (alpha / NUMBER_OF_TRAILS) * (6 - i2);
-
-                    trail(item, speed, newAlpha, offset);
-
-                    offset = offset + 0.1;
-                    speed = speed * 2;
-                }
-                */
 
                 trail(item, 32, 0.3, 0.1);
                 trail(item, 128, 0.2, 0.2);
@@ -212,7 +202,15 @@ var DrawFrame = function() {
 
             }
             else{
-                view.drawImage(item.texture, item.x, item.y, item.width, item.height);
+
+                trail(item, 32, 0.3, 0.1);
+                trail(item, 128, 0.2, 0.2);
+                trail(item, 512, 0.1, 0.3);
+
+                var texture = new Image();
+                texture.src = item.texture;
+
+                view.drawImage(texture, item.x, item.y, item.width, item.height);
             }
         }
     }
@@ -226,11 +224,6 @@ var DrawFrame = function() {
     view.fillText(title,
                     BUFFER.width / 2 - (titleMeasurement.width / 2),
                     titleHeight);
-//    view.strokeStyle = '#111';
-//    view.lineWidth = 1;
-//    view.strokeText(title,
-//                    BUFFER.width / 2 - (titleMeasurement.width / 2),
-//                    titleHeight);
 
     // Draw the FPS
     framesSinceLastTick++;
@@ -319,11 +312,10 @@ var Physics = function(delta) {
                             }
 
                             // Enable this to ensure that energy stays at a constant.
-                            console.log((iivy * item.mass + civy * item.mass) + " = " + (item.vy * item.mass + collider.vy * collider.mass));
+                            //console.log((iivy * item.mass + civy * item.mass) + " = " + (item.vy * item.mass + collider.vy * collider.mass));
 
                             // This positional skip keeps parts from detecting an additional collision
                             // from the collider due to a missing change in position.
-
 
                             if (item.type != Entity.KINEMATIC || (item.type == Entity.KINEMATIC && collider.type == Entity.KINEMATIC)) {
                             item.x = item.x + (item.vx * delta);
@@ -439,14 +431,10 @@ document.ontouchstart = function(e) {
         MOUSE_Y = TOUCHES[0].pageY * PIXEL_RATIO;
     }
 
-    //alert(TOUCHES[0].pageX + " " + TOUCHES[0].pageY + " " + SLOW_TIME + " " + FREEZE_MODE + " " + TOUCHES.length);
-
 };
 
 document.ontouchend = function(e) {
     TOUCHES = e.changedTouches;
-
-    //alert(TOUCHES.length);
 
     if (TOUCHES.length > 1) {
         SLOW_TIME = true;
@@ -460,13 +448,6 @@ document.ontouchend = function(e) {
         SLOW_TIME = false;
         FREEZE_MODE = false;
     }
-    /*
-    else if (TOUCHES.length == 1) {
-        FREEZE_MODE = true;
-        MOUSE_X = TOUCHES[0].pageX * PIXEL_RATIO;
-        MOUSE_Y = TOUCHES[0].pageY * PIXEL_RATIO;
-    }
-    */
 };
 
 window.ondevicemotion = function(event) {
@@ -569,23 +550,6 @@ var GameConditions = function() {
                 part.freeze(20, true);
             }
         }
-
-        /*
-        if (Math.abs(block.vx) >= 512) {
-            var random = Math.random();
-            if (random > 0.5) {
-                GRAVITY_X = GRAVITY_X * -1;
-            }
-        }
-
-        if (Math.abs(block.vy) >= 512) {
-            var random2 = Math.random();
-            if (random2 > 0.5) {
-                GRAVITY_Y = GRAVITY_Y * -1;
-            }
-        }
-        */
-
     }
 };
 
@@ -620,8 +584,9 @@ var Engine = function() {
 
 // Initialize here
 
-var block = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#ff00ff", "#000000", 2, null, 0, 0, 0, 0);
-var subject = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#ff0000", "#000000", 2, null, 0, -5, 0, 0);
+/*
+var block = new Entity("Purple", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#ff00ff", "#000000", 2, null, 0, 0, 0, 0);
+var subject = new Entity("Red", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#ff0000", "#000000", 2, null, 0, -5, 0, 0);
 
 var block2 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 + 50, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 3, 0, 0);
 var subject2 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 + 50, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, null, 0, -5, 0, 0);
@@ -635,8 +600,23 @@ var subject4 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 - 150, VIEW
 var block5 = new Entity("Big", 100, 100, VIEWPORT.width / 2 - 25 + 250, VIEWPORT.height / 2 - 25 - 0, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 0, 0, 0);
 var subject5 = new Entity("Small", 25, 25, VIEWPORT.width / 2 - 12.5 + 275, VIEWPORT.height / 2 - 25 - 175, Entity.DYNAMIC, "#000000", "#000000", 1, null, 0, 5, 0, 0);
 
-var drop = new Entity("Drop", 50, 50, VIEWPORT.width / 2 - 25 - 251, VIEWPORT.height / 2 + 125 - 50, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 5, 0, 0);
+var drop = new Entity("Drop", 50, 50, VIEWPORT.width / 2 - 25 - 251, VIEWPORT.height / 2 + 125 - 50, Entity.DYNAMIC, "#0000ff", "#000000", 0.6, null, 0, 5, 0, 0);
 var plate = new Entity("Plate", 100, 5, VIEWPORT.width / 2 - 50 - 250, VIEWPORT.height / 2 + 250 - 0, Entity.KINEMATIC, "#00ff00", "#000000", 1, null, 0, 0, 0, 0);
+
+var deflector = new Entity("Deflector", 25, 25, VIEWPORT.width / 2 - 12.5 + 400, VIEWPORT.height / 2 - 25 - 175, Entity.DYNAMIC, "#000000", "#000000", 1, null, 1, 5, 0, 0);
+var plane = new Entity("Plane", 100, 10, VIEWPORT.width / 2 - 25 + 400, VIEWPORT.height / 2 - 25 + 50, Entity.KINEMATIC, "#0000ff", "#000000", 1, null, 0, 0, 0, 0);
+
+var deflector2 = new Entity("Deflector", 25, 25, VIEWPORT.width / 2 - 12.5 + 500, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, null, -5, 1, 0, 0);
+var plane2 = new Entity("Plane", 10, 100, VIEWPORT.width / 2 - 25 + 400, VIEWPORT.height / 2 - 25 + 100, Entity.KINEMATIC, "#0000ff", "#000000", 1, null, 0, 0, 0, 0);
+
+var sharp = new Entity("Sharp", 25, 25, 10.5, 10.5);
+var blurry = new Entity("Blurry", 25, 25, 40, 40);
+*/
+
+var texblock = new Entity("Textured", 50, 50, VIEWPORT.width/2 - 25, VIEWPORT.height/2 - 25, Entity.DYNAMIC, "#000000", "#000000", 1, "textures/Block.png", -30, -100, 0, 0);
+var texblock2 = new Entity("Textured", 100, 100, VIEWPORT.width/2 - 25, VIEWPORT.height/2 - 50 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, "textures/Block.png", 30, -50, 0, 0);
+
+GRAVITY_Y = 9.8;
 
 // Start the Engine
 Engine();

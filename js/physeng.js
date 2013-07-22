@@ -37,6 +37,18 @@ setViewSize();
 window.addEventListener('resize', setViewSize);
 window.addEventListener('orientationchange', setViewSize);
 
+var CAMERA = {
+    focusX : VIEWPORT.width / 2,
+    focusY : VIEWPORT.height / 2,
+    scrollX: 0,
+    scrollY: 0,
+    target : null,
+    moveTo : function(focusX, focusY, frames) {
+        // For later
+        // This will be a smooth scrolling between two objects.
+    }
+};
+
 var BACKGROUND_COLOR = "#ffffff";
 
 // A shortcut for drawing methods
@@ -132,18 +144,32 @@ setInterval(function(){
 
 var DrawFrame = function() {
 
+    // Set the Camera
+    if (CAMERA.target != null) {
+        CAMERA.focusX = CAMERA.target.x + (CAMERA.target.width / 2);
+        CAMERA.focusY = CAMERA.target.y + (CAMERA.target.height / 2);
+    }
+
+    CAMERA.scrollX = (VIEWPORT.width / 2) - CAMERA.focusX;
+    CAMERA.scrollY = (VIEWPORT.height / 2) - CAMERA.focusY;
+
     // Clear the view
+
     view.fillStyle = BACKGROUND_COLOR;
     view.fillRect(0, 0, VIEWPORT.width, VIEWPORT.height);
 
     for (var i = 0; i < WORKSPACE.length; i++) {
 
-        if (WORKSPACE[i] &&
+        if (WORKSPACE[i]/* &&
             WORKSPACE[i].x < VIEWPORT.width &&
             WORKSPACE[i].x + WORKSPACE[i].width > 0 &&
             WORKSPACE[i].y < VIEWPORT.height &&
-            WORKSPACE[i].y + WORKSPACE[i].width > 0) {
+            WORKSPACE[i].y + WORKSPACE[i].width > 0*/) {
             var item = WORKSPACE[i];
+
+            var xPos = item.x + CAMERA.scrollX;
+            var yPos = item.y + CAMERA.scrollY;
+
             var trail = function(item, speed, alpha, offset) {
                 if (Math.abs(item.vx) + Math.abs(item.vy) > speed) {
 
@@ -155,11 +181,11 @@ var DrawFrame = function() {
                     if (item.texture == null) {
                         view.beginPath();
 
-                        view.moveTo(item.x - offsetx, item.y - offsety);
-                        view.lineTo(item.x - offsetx, item.y + item.height - offsety);
-                        view.lineTo(item.x + item.width - offsetx, item.y + item.height - offsety);
-                        view.lineTo(item.x + item.width - offsetx, item.y - offsety);
-                        view.lineTo(item.x - offsetx, item.y - offsety);
+                        view.moveTo(xPos - offsetx, yPos - offsety);
+                        view.lineTo(xPos - offsetx, yPos + item.height - offsety);
+                        view.lineTo(xPos + item.width - offsetx, yPos + item.height - offsety);
+                        view.lineTo(xPos + item.width - offsetx, yPos - offsety);
+                        view.lineTo(xPos - offsetx, yPos - offsety);
                         view.closePath();
 
                         view.fillStyle = item.fillColor;
@@ -171,7 +197,7 @@ var DrawFrame = function() {
                         var texture = new Image();
                         texture.src = item.texture;
 
-                        view.drawImage(texture, item.x - offsetx, item.y - offsety, item.width, item.height);
+                        view.drawImage(texture, xPos - offsetx, yPos - offsety, item.width, item.height);
                     }
 
                     view.globalAlpha = 1.0;
@@ -187,11 +213,18 @@ var DrawFrame = function() {
 
                 view.beginPath();
 
-                view.moveTo(item.x, item.y);
-                view.lineTo(item.x, item.y + item.height);
-                view.lineTo(item.x + item.width, item.y + item.height);
-                view.lineTo(item.x + item.width, item.y);
-                view.lineTo(item.x, item.y);
+                view.moveTo(xPos, yPos);
+                view.lineTo(xPos, yPos + item.height);
+                view.lineTo(xPos + item.width, yPos + item.height);
+                view.lineTo(xPos + item.width, yPos);
+                view.lineTo(xPos, yPos);
+                /*
+                 view.moveTo(item.x, item.y);
+                 view.lineTo(item.x, item.y + item.height);
+                 view.lineTo(item.x + item.width, item.y + item.height);
+                 view.lineTo(item.x + item.width, item.y);
+                 view.lineTo(item.x, item.y);
+                 */
                 view.closePath();
 
                 view.fillStyle = item.fillColor;
@@ -210,7 +243,7 @@ var DrawFrame = function() {
                 var texture = new Image();
                 texture.src = item.texture;
 
-                view.drawImage(texture, item.x, item.y, item.width, item.height);
+                view.drawImage(texture, xPos, yPos, item.width, item.height);
             }
         }
     }
@@ -474,7 +507,7 @@ document.onmousemove = function(e) {
 document.onmousedown = function(e) {
     switch (e.which) {
         case 1:
-            FREEZE_MODE = true;
+            //FREEZE_MODE = true;
             // Left mouse button
             break;
         case 2:
@@ -482,12 +515,15 @@ document.onmousedown = function(e) {
             break;
         case 3:
             // Right mouse button
+            CAMERA.focusX = MOUSE_X;
+            CAMERA.focusY = MOUSE_Y;
+            CAMERA.target = null;
             break;
     }
 };
 
 document.onmouseup = function(e) {
-    FREEZE_MODE = false;
+    //FREEZE_MODE = false;
 };
 
 document.onkeydown = function(e) {
@@ -496,15 +532,18 @@ document.onkeydown = function(e) {
     //console.log('KEY DOWN: ' + key);
     if (key == "87" || key == "38") {
         // W or UP key
+        center.vy = -50;
     }
     if (key == "65" || key == "37") {
         // A or LEFT key
+        center.ax = -10;
     }
     if (key == "83" || key == "40") {
         // S or DOWN key
     }
     if (key == "68" || key == "39") {
         // D or RIGHT key
+        center.ax = 10;
     }
     if (key == "32") {
         // Spacebar
@@ -521,12 +560,14 @@ document.onkeyup = function(e) {
     }
     if (key == "65" || key == "37") {
         // A or LEFT key
+        center.ax = 0;
     }
     if (key == "83" || key == "40") {
         // S or DOWN key
     }
     if (key == "68" || key == "39") {
         // D or RIGHT key
+        center.ax = 0;
     }
     if (key == "32") {
         // Spacebar
@@ -613,10 +654,27 @@ var sharp = new Entity("Sharp", 25, 25, 10.5, 10.5);
 var blurry = new Entity("Blurry", 25, 25, 40, 40);
 */
 
-var texblock = new Entity("Textured", 50, 50, VIEWPORT.width/2 - 25, VIEWPORT.height/2 - 25, Entity.DYNAMIC, "#000000", "#000000", 1, "textures/Block.png", -30, -100, 0, 0);
-var texblock2 = new Entity("Textured", 100, 100, VIEWPORT.width/2 - 25, VIEWPORT.height/2 - 50 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, "textures/Block.png", 30, -50, 0, 0);
+var center = new Entity("Center", 100, 100, VIEWPORT.width / 2 - 50, VIEWPORT.height / 2 - 50, Entity.DYNAMIC, "#000000", "#000000", 0.7, "textures/Block.png", Math.random() * 50, Math.random() * 100 * -1, 0, 0);
+
+/*
+for (var i = 0; i < 15; i++) {
+    new Entity("Block", 50, 50, Math.random() * VIEWPORT.width - 25, Math.random() * VIEWPORT.height - 25, Entity.DYNAMIC,"#000000", "#000000", 0.7);
+}
+*/
+
+var top = new Entity("Top", VIEWPORT.width + 30, 30, -30, -30, Entity.KINEMATIC, "#ff0000", "#000000", 0.3);
+var bottom = new Entity("Bottom", VIEWPORT.width + 30, 30, -30, VIEWPORT.height - 30, Entity.KINEMATIC, "#ff0000", "#000000", 0.3);
+var left = new Entity("Left", 30, VIEWPORT.height + 30, -30, -30, Entity.KINEMATIC, "#ff0000", "#000000", 0.3);
+var right = new Entity("Right", 30, VIEWPORT.height + 30, VIEWPORT.width - 30, -30, Entity.KINEMATIC, "#ff0000", "#000000", 0.3);
+
+CAMERA.target = center;
 
 GRAVITY_Y = 9.8;
+
+/*
+var texblock = new Entity("Textured", 50, 50, VIEWPORT.width/2 - 25, VIEWPORT.height/2 - 25, Entity.DYNAMIC, "#000000", "#000000", 1, "textures/Block.png", 0, 0, 0, 0);
+var texblock2 = new Entity("Textured", 100, 100, VIEWPORT.width/2 - 25, VIEWPORT.height/2 - 50 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, "textures/Block.png", 0, 0, 0, 0);
+*/
 
 // Start the Engine
 Engine();

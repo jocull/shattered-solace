@@ -2,7 +2,7 @@
 
 // If an object's velocity is nearing this number, then its
 // velocity will be set to 0.
-var SETTLE_POINT = 0.5;
+var SETTLE_POINT = 0.05;
 
 // The world's X and Y gravity values.
 // Measured in seconds, i.e., 10 pixels per second.
@@ -349,7 +349,60 @@ var Physics = function(delta) {
 
                             // This positional skip keeps parts from detecting an additional collision
                             // from the collider due to a missing change in position.
+                            // It also helps to stop the shakiness from gravity.
 
+                            // Detect which sides are colliding
+                            var itemLeft = item.x;
+                            var itemRight = item.x + item.width;
+                            var itemTop = item.y;
+                            var itemBottom = item.y + item.height;
+                            var colliderLeft = collider.x;
+                            var colliderRight = collider.x + collider.width;
+                            var colliderTop = collider.y;
+                            var colliderBottom = collider.y + collider.height;
+
+                            var leftDistance = Math.abs(itemLeft - colliderRight);
+                            var rightDistance = Math.abs(itemRight - colliderLeft);
+                            var topDistance = Math.abs(itemTop - colliderBottom);
+                            var bottomDistance = Math.abs(itemBottom - colliderTop);
+
+                            if (leftDistance < rightDistance && leftDistance < topDistance && leftDistance < bottomDistance) {
+                                // WEST or LEFT collision from ITEM
+                                if (collider.type == Entity.KINEMATIC || item.mass < collider.mass) {
+                                    item.x = collider.width + collider.x;
+                                }
+                                else if (item.type == Entity.KINEMATIC || collider.mass < item.mass) {
+                                    collider.x = item.width + item.x;
+                                }
+                            }
+                            else if (rightDistance < leftDistance && rightDistance < topDistance && rightDistance < bottomDistance) {
+                                // EAST or RIGHT collision from ITEM
+                                if (collider.type == Entity.KINEMATIC || item.mass < collider.mass) {
+                                    item.x = collider.x - item.width;
+                                }
+                                else if (item.type == Entity.KINEMATIC || collider.mass < item.mass) {
+                                    collider.x = item.x - collider.width;
+                                }
+                            }
+                            else if (topDistance < bottomDistance && topDistance < leftDistance && topDistance < rightDistance) {
+                                // NORTH or TOP collision from ITEM
+                                if (collider.type == Entity.KINEMATIC || item.mass < collider.mass) {
+                                    item.y = collider.y + collider.height;
+                                }
+                                else if (item.type == Entity.KINEMATIC || collider.mass < item.mass) {
+                                    collider.y = item.x + item.height;
+                                }
+                            }
+                            else if (bottomDistance < topDistance && bottomDistance < leftDistance && bottomDistance < rightDistance) {
+                                // SOUTH or BOTTOM collision from ITEM
+                                if (collider.type == Entity.KINEMATIC || item.mass < collider.mass) {
+                                    item.y = collider.y - item.height;
+                                }
+                                else if (item.type == Entity.KINEMATIC || collider.mass < item.mass) {
+                                    collider.y = item.x - collider.height;
+                                }
+                            }
+                            /*
                             if (item.type != Entity.KINEMATIC || (item.type == Entity.KINEMATIC && collider.type == Entity.KINEMATIC)) {
                             item.x = item.x + (item.vx * delta);
                             item.y = item.y + (item.vy * delta);
@@ -359,6 +412,7 @@ var Physics = function(delta) {
                             collider.x = collider.x + (collider.vx * delta);
                             collider.y = collider.y + (collider.vy * delta);
                             }
+                            */
                         }
                     }
                 }
@@ -654,7 +708,8 @@ var sharp = new Entity("Sharp", 25, 25, 10.5, 10.5);
 var blurry = new Entity("Blurry", 25, 25, 40, 40);
 */
 
-var center = new Entity("Center", 100, 100, VIEWPORT.width / 2 - 50, VIEWPORT.height / 2 - 50, Entity.DYNAMIC, "#000000", "#000000", 0.7, "textures/Block.png", Math.random() * 50, Math.random() * 100 * -1, 0, 0);
+var center = new Entity("Center", 100, 100, VIEWPORT.width / 2 - 50, VIEWPORT.height / 2 - 50, Entity.DYNAMIC, "#000000", "#000000", 0.5, "textures/Block.png", Math.random() * 50, Math.random() * 100 * -1, 0, 0);
+new Entity("Block", 50, 50, Math.random() * VIEWPORT.width - 25, Math.random() * VIEWPORT.height - 25, Entity.DYNAMIC,"#000000", "#000000", 0.7);
 
 /*
 for (var i = 0; i < 15; i++) {
@@ -662,10 +717,10 @@ for (var i = 0; i < 15; i++) {
 }
 */
 
-var top = new Entity("Top", VIEWPORT.width + 30, 30, -30, -30, Entity.KINEMATIC, "#ff0000", "#000000", 0.3);
-var bottom = new Entity("Bottom", VIEWPORT.width + 30, 30, -30, VIEWPORT.height - 30, Entity.KINEMATIC, "#ff0000", "#000000", 0.3);
-var left = new Entity("Left", 30, VIEWPORT.height + 30, -30, -30, Entity.KINEMATIC, "#ff0000", "#000000", 0.3);
-var right = new Entity("Right", 30, VIEWPORT.height + 30, VIEWPORT.width - 30, -30, Entity.KINEMATIC, "#ff0000", "#000000", 0.3);
+var top = new Entity("Top", VIEWPORT.width -30, 30, 0, -30, Entity.KINEMATIC, "#ff0000", "#000000", 0.6);
+var bottom = new Entity("Bottom", VIEWPORT.width - 30, 30, 0, VIEWPORT.height - 30, Entity.KINEMATIC, "#ff0000", "#000000", 0.6);
+var left = new Entity("Left", 30, VIEWPORT.height - 30, -30, 0, Entity.KINEMATIC, "#ff0000", "#000000", 0.6);
+var right = new Entity("Right", 30, VIEWPORT.height - 30, VIEWPORT.width - 30, 0, Entity.KINEMATIC, "#ff0000", "#000000", 0.6);
 
 CAMERA.target = center;
 

@@ -11,6 +11,8 @@ var SETTLE_POINT = 0.05;
 var GRAVITY_X = 0;
 var GRAVITY_Y = 0; // 9.8 m/s^2 is Earth gravity
 
+var DEFLECTION = true;
+
 var WORKSPACE = [];
 
 // Engine Output
@@ -368,38 +370,54 @@ var Physics = function(delta) {
 
                             if (leftDistance < rightDistance && leftDistance < topDistance && leftDistance < bottomDistance) {
                                 // WEST or LEFT collision from ITEM
-                                if (collider.type == Entity.KINEMATIC || item.mass < collider.mass) {
-                                    item.x = collider.width + collider.x;
+                                if (item.type != Entity.KINEMATIC) {
+                                    item.x = collider.x + collider.width;
                                 }
-                                else if (item.type == Entity.KINEMATIC || collider.mass < item.mass) {
-                                    collider.x = item.width + item.x;
+                                if (collider.type != Entity.KINEMATIC) {
+                                    collider.x = item.x - collider.width;
+                                }
+                                if (DEFLECTION == true) {
+                                    item.vy = item.vy * -1;
+                                    collider.vy = collider.vy * -1;
                                 }
                             }
                             else if (rightDistance < leftDistance && rightDistance < topDistance && rightDistance < bottomDistance) {
                                 // EAST or RIGHT collision from ITEM
-                                if (collider.type == Entity.KINEMATIC || item.mass < collider.mass) {
+                                if (item.type != Entity.KINEMATIC) {
                                     item.x = collider.x - item.width;
                                 }
-                                else if (item.type == Entity.KINEMATIC || collider.mass < item.mass) {
-                                    collider.x = item.x - collider.width;
+                                if (collider.type != Entity.KINEMATIC) {
+                                    collider.x = item.x + item.width;
+                                }
+                                if (DEFLECTION == true) {
+                                    item.vy = item.vy * -1;
+                                    collider.vy = collider.vy * -1;
                                 }
                             }
                             else if (topDistance < bottomDistance && topDistance < leftDistance && topDistance < rightDistance) {
                                 // NORTH or TOP collision from ITEM
-                                if (collider.type == Entity.KINEMATIC || item.mass < collider.mass) {
+                                if (item.type != Entity.KINEMATIC) {
                                     item.y = collider.y + collider.height;
                                 }
-                                else if (item.type == Entity.KINEMATIC || collider.mass < item.mass) {
-                                    collider.y = item.x + item.height;
+                                if (collider.type != Entity.KINEMATIC) {
+                                    collider.y = item.y - collider.height;
+                                }
+                                if (DEFLECTION == true) {
+                                    item.vx = item.vx * -1;
+                                    collider.vx = collider.vx * -1;
                                 }
                             }
                             else if (bottomDistance < topDistance && bottomDistance < leftDistance && bottomDistance < rightDistance) {
                                 // SOUTH or BOTTOM collision from ITEM
-                                if (collider.type == Entity.KINEMATIC || item.mass < collider.mass) {
+                                if (item.type != Entity.KINEMATIC) {
                                     item.y = collider.y - item.height;
                                 }
-                                else if (item.type == Entity.KINEMATIC || collider.mass < item.mass) {
-                                    collider.y = item.x - collider.height;
+                                if (collider.type != Entity.KINEMATIC) {
+                                    collider.y = item.y + item.height;
+                                }
+                                if (DEFLECTION == true) {
+                                    item.vx = item.vx * -1;
+                                    collider.vx = collider.vx * -1;
                                 }
                             }
                             /*
@@ -586,18 +604,19 @@ document.onkeydown = function(e) {
     //console.log('KEY DOWN: ' + key);
     if (key == "87" || key == "38") {
         // W or UP key
-        center.vy = -50;
+        Player.vy = -50;
     }
     if (key == "65" || key == "37") {
         // A or LEFT key
-        center.ax = -10;
+        Player.ax = -10;
     }
     if (key == "83" || key == "40") {
         // S or DOWN key
+        Player.vy = 50;
     }
     if (key == "68" || key == "39") {
         // D or RIGHT key
-        center.ax = 10;
+        Player.ax = 10;
     }
     if (key == "32") {
         // Spacebar
@@ -614,14 +633,14 @@ document.onkeyup = function(e) {
     }
     if (key == "65" || key == "37") {
         // A or LEFT key
-        center.ax = 0;
+        Player.ax = 0;
     }
     if (key == "83" || key == "40") {
         // S or DOWN key
     }
     if (key == "68" || key == "39") {
         // D or RIGHT key
-        center.ax = 0;
+        Player.ax = 0;
     }
     if (key == "32") {
         // Spacebar
@@ -647,6 +666,7 @@ var GameConditions = function() {
         }
     }
 };
+
 
 var SLOW_TIME = false;
 var SLOW_TIME_FACTOR = 4;
@@ -708,8 +728,9 @@ var sharp = new Entity("Sharp", 25, 25, 10.5, 10.5);
 var blurry = new Entity("Blurry", 25, 25, 40, 40);
 */
 
-var center = new Entity("Center", 100, 100, VIEWPORT.width / 2 - 50, VIEWPORT.height / 2 - 50, Entity.DYNAMIC, "#000000", "#000000", 0.5, "textures/Block.png", Math.random() * 50, Math.random() * 100 * -1, 0, 0);
-new Entity("Block", 50, 50, Math.random() * VIEWPORT.width - 25, Math.random() * VIEWPORT.height - 25, Entity.DYNAMIC,"#000000", "#000000", 0.7);
+//var center = new Entity("Center", 100, 100, VIEWPORT.width / 2 - 50, VIEWPORT.height / 2 - 50, Entity.DYNAMIC, "#000000", "#000000", 0.5, "textures/Block.png", Math.random() * 50, Math.random() * 100 * -1, 0, 0);
+new Entity("Block", 300, 50, Math.random() * VIEWPORT.width - 25, Math.random() * VIEWPORT.height - 25, Entity.DYNAMIC,"#000000", "#000000", 0.7);
+var Player = new Entity("Player", 35 * 2, 75 * 2, VIEWPORT.width / 2 - 16, VIEWPORT.height / 2 - 25, Entity.DYNAMIC, "#000000", "#000000", 0.3, "textures/Man.png", 0, 0, 0, 0);
 
 /*
 for (var i = 0; i < 15; i++) {
@@ -722,7 +743,7 @@ var bottom = new Entity("Bottom", VIEWPORT.width - 30, 30, 0, VIEWPORT.height - 
 var left = new Entity("Left", 30, VIEWPORT.height - 30, -30, 0, Entity.KINEMATIC, "#ff0000", "#000000", 0.6);
 var right = new Entity("Right", 30, VIEWPORT.height - 30, VIEWPORT.width - 30, 0, Entity.KINEMATIC, "#ff0000", "#000000", 0.6);
 
-CAMERA.target = center;
+CAMERA.target = Player;
 
 GRAVITY_Y = 9.8;
 

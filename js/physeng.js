@@ -162,11 +162,11 @@ var DrawFrame = function() {
 
     for (var i = 0; i < WORKSPACE.length; i++) {
 
-        if (WORKSPACE[i]/* &&
-            WORKSPACE[i].x < VIEWPORT.width &&
-            WORKSPACE[i].x + WORKSPACE[i].width > 0 &&
-            WORKSPACE[i].y < VIEWPORT.height &&
-            WORKSPACE[i].y + WORKSPACE[i].width > 0*/) {
+        if (WORKSPACE[i] &&
+            WORKSPACE[i].x + CAMERA.scrollX < VIEWPORT.width &&
+            WORKSPACE[i].x + CAMERA.scrollX + WORKSPACE[i].width > 0 &&
+            WORKSPACE[i].y + CAMERA.scrollY < VIEWPORT.height &&
+            WORKSPACE[i].y + CAMERA.scrollY + WORKSPACE[i].height > 0) {
             var item = WORKSPACE[i];
 
             var xPos = item.x + CAMERA.scrollX;
@@ -220,13 +220,6 @@ var DrawFrame = function() {
                 view.lineTo(xPos + item.width, yPos + item.height);
                 view.lineTo(xPos + item.width, yPos);
                 view.lineTo(xPos, yPos);
-                /*
-                 view.moveTo(item.x, item.y);
-                 view.lineTo(item.x, item.y + item.height);
-                 view.lineTo(item.x + item.width, item.y + item.height);
-                 view.lineTo(item.x + item.width, item.y);
-                 view.lineTo(item.x, item.y);
-                 */
                 view.closePath();
 
                 view.fillStyle = item.fillColor;
@@ -236,11 +229,12 @@ var DrawFrame = function() {
 
 
             }
-            else{
+            else
+            {
 
-                trail(item, 32, 0.3, 0.1);
-                trail(item, 128, 0.2, 0.2);
-                trail(item, 512, 0.1, 0.3);
+                trail(item, 128, 0.3, 0.1);
+                trail(item, 512, 0.2, 0.2);
+                trail(item, 1024, 0.1, 0.3);
 
                 var texture = new Image();
                 texture.src = item.texture;
@@ -651,25 +645,10 @@ document.onkeyup = function(e) {
 var FREEZE_MODE = false;
 var FREEZE_RADIUS = 50;
 
-var GameConditions = function() {
-    //Work backwards so we can slice out items as we go
-    for (var i = (WORKSPACE.length - 1); i >= 0; i--) {
-        var part = WORKSPACE[i];
-
-        if (FREEZE_MODE == true) {
-
-            var distanceFromMouse = Math.abs(MOUSE_X - (part.x + (part.width / 2))) + Math.abs(MOUSE_Y - (part.y + (part.height / 2)));
-
-            if (distanceFromMouse <= FREEZE_RADIUS) {
-                part.freeze(20, true);
-            }
-        }
-    }
-};
-
+var GameConditions; // This is a function that is set in the game.js file.
 
 var SLOW_TIME = false;
-var SLOW_TIME_FACTOR = 4;
+var SLOW_TIME_FACTOR = 5;
 
 var lastStep;
 
@@ -696,61 +675,3 @@ var Engine = function() {
     VIEWPORT_CONTEXT.drawImage(BUFFER, 0, 0);
     requestAnimationFrame(Engine);
 };
-
-// Initialize here
-
-/*
-var block = new Entity("Purple", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#ff00ff", "#000000", 2, null, 0, 0, 0, 0);
-var subject = new Entity("Red", 50, 50, VIEWPORT.width / 2 - 25 + 150, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#ff0000", "#000000", 2, null, 0, -5, 0, 0);
-
-var block2 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 + 50, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 3, 0, 0);
-var subject2 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 + 50, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, null, 0, -5, 0, 0);
-
-var block3 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 - 50, VIEWPORT.height / 2 - 25 - 100, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 5, 0, 0);
-var subject3 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 - 50, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, null, 0, -5, 0, 0);
-
-var block4 = new Entity("Block", 50, 50, VIEWPORT.width / 2 - 25 - 250, VIEWPORT.height / 2 - 25 - 0, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 0, 0, 0);
-var subject4 = new Entity("Subject", 50, 50, VIEWPORT.width / 2 - 25 - 150, VIEWPORT.height / 2 - 25 + 0, Entity.DYNAMIC, "#000000", "#000000", 1, null, -5, -2, 0, 0);
-
-var block5 = new Entity("Big", 100, 100, VIEWPORT.width / 2 - 25 + 250, VIEWPORT.height / 2 - 25 - 0, Entity.DYNAMIC, "#0000ff", "#000000", 1, null, 0, 0, 0, 0);
-var subject5 = new Entity("Small", 25, 25, VIEWPORT.width / 2 - 12.5 + 275, VIEWPORT.height / 2 - 25 - 175, Entity.DYNAMIC, "#000000", "#000000", 1, null, 0, 5, 0, 0);
-
-var drop = new Entity("Drop", 50, 50, VIEWPORT.width / 2 - 25 - 251, VIEWPORT.height / 2 + 125 - 50, Entity.DYNAMIC, "#0000ff", "#000000", 0.6, null, 0, 5, 0, 0);
-var plate = new Entity("Plate", 100, 5, VIEWPORT.width / 2 - 50 - 250, VIEWPORT.height / 2 + 250 - 0, Entity.KINEMATIC, "#00ff00", "#000000", 1, null, 0, 0, 0, 0);
-
-var deflector = new Entity("Deflector", 25, 25, VIEWPORT.width / 2 - 12.5 + 400, VIEWPORT.height / 2 - 25 - 175, Entity.DYNAMIC, "#000000", "#000000", 1, null, 1, 5, 0, 0);
-var plane = new Entity("Plane", 100, 10, VIEWPORT.width / 2 - 25 + 400, VIEWPORT.height / 2 - 25 + 50, Entity.KINEMATIC, "#0000ff", "#000000", 1, null, 0, 0, 0, 0);
-
-var deflector2 = new Entity("Deflector", 25, 25, VIEWPORT.width / 2 - 12.5 + 500, VIEWPORT.height / 2 - 25 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, null, -5, 1, 0, 0);
-var plane2 = new Entity("Plane", 10, 100, VIEWPORT.width / 2 - 25 + 400, VIEWPORT.height / 2 - 25 + 100, Entity.KINEMATIC, "#0000ff", "#000000", 1, null, 0, 0, 0, 0);
-
-var sharp = new Entity("Sharp", 25, 25, 10.5, 10.5);
-var blurry = new Entity("Blurry", 25, 25, 40, 40);
-*/
-
-//var center = new Entity("Center", 100, 100, VIEWPORT.width / 2 - 50, VIEWPORT.height / 2 - 50, Entity.DYNAMIC, "#000000", "#000000", 0.5, "textures/Block.png", Math.random() * 50, Math.random() * 100 * -1, 0, 0);
-new Entity("Block", 300, 50, Math.random() * VIEWPORT.width - 25, Math.random() * VIEWPORT.height - 25, Entity.DYNAMIC,"#000000", "#000000", 0.7);
-var Player = new Entity("Player", 35 * 2, 75 * 2, VIEWPORT.width / 2 - 16, VIEWPORT.height / 2 - 25, Entity.DYNAMIC, "#000000", "#000000", 0.3, "textures/Man.png", 0, 0, 0, 0);
-
-/*
-for (var i = 0; i < 15; i++) {
-    new Entity("Block", 50, 50, Math.random() * VIEWPORT.width - 25, Math.random() * VIEWPORT.height - 25, Entity.DYNAMIC,"#000000", "#000000", 0.7);
-}
-*/
-
-var top = new Entity("Top", VIEWPORT.width -30, 30, 0, -30, Entity.KINEMATIC, "#ff0000", "#000000", 0.6);
-var bottom = new Entity("Bottom", VIEWPORT.width - 30, 30, 0, VIEWPORT.height - 30, Entity.KINEMATIC, "#ff0000", "#000000", 0.6);
-var left = new Entity("Left", 30, VIEWPORT.height - 30, -30, 0, Entity.KINEMATIC, "#ff0000", "#000000", 0.6);
-var right = new Entity("Right", 30, VIEWPORT.height - 30, VIEWPORT.width - 30, 0, Entity.KINEMATIC, "#ff0000", "#000000", 0.6);
-
-CAMERA.target = Player;
-
-GRAVITY_Y = 9.8;
-
-/*
-var texblock = new Entity("Textured", 50, 50, VIEWPORT.width/2 - 25, VIEWPORT.height/2 - 25, Entity.DYNAMIC, "#000000", "#000000", 1, "textures/Block.png", 0, 0, 0, 0);
-var texblock2 = new Entity("Textured", 100, 100, VIEWPORT.width/2 - 25, VIEWPORT.height/2 - 50 + 100, Entity.DYNAMIC, "#000000", "#000000", 1, "textures/Block.png", 0, 0, 0, 0);
-*/
-
-// Start the Engine
-Engine();

@@ -301,7 +301,7 @@ var Physics = function(delta) {
             item.x = item.x + (item.vx * delta) + ((0.5 * item.ax) * (delta * delta));
             item.y = item.y + (item.vy * delta) + ((0.5 * item.ay) * (delta * delta));
 
-        // Detect collisions
+        // Detect and resolve collisions
             if (item.type != Entity.PHANTOM) {
             for (var i2 = 0; i2 < WORKSPACE.length; i2 ++) {
                 if (WORKSPACE[i2] != null && WORKSPACE[i2] != item) {
@@ -311,59 +311,7 @@ var Physics = function(delta) {
                         if ((item.x + item.width > collider.x && item.x < collider.x + collider.width)
                             && (item.y + item.height > collider.y && item.y < collider.y + collider.height)) {
 
-        // Resolve collisions
-
-                            // Disable all item settlings
-                            // These will be reset
-                            item.sl, item.sr, item.st, item.sb = false;
-                            collider.sl, collider.sr, collider.st, collider.sb = false;
-
-                            // Collision Equation: va = (cr * mb * (vb - va) + ma * va + mb * vb) / ma + mb
-                            // Equation of the coefficient of restitution: cr = (vb - va) / (ua - ub)
-
-                            // Calculate the coefficients of restitution
-                            var crx;
-                            var cry;
-
-                            // To avoid NaN results...
-                            if (item.vx - collider.vx == 0) {
-                                crx = 0;
-                            }
-                            else {
-                                crx = (collider.vx - item.vx) / (item.vx - collider.vx);
-                            }
-
-                            if (item.vy - collider.vy == 0) {
-                                cry = 0;
-                            }
-                            else {
-                                cry = (collider.vy - item.vy) / (item.vy - collider.vy);
-                            }
-
-                            var iivx = item.vx; // item initial velocity x
-                            var civx = collider.vx; // collider initial velocity x
-
-                            var iivy = item.vy; // item initial velocity y
-                            var civy = collider.vy; // collider initial velocity y
-
-                            if (item.type != Entity.KINEMATIC || (item.type == Entity.KINEMATIC && collider.type == Entity.KINEMATIC)) {
-                            item.vx = (((item.mass * iivx) + (collider.mass * civx) + (collider.mass * (item.elasticity * crx) * (iivx - civx)))) / (item.mass + collider.mass);
-                            item.vy = (((item.mass * iivy) + (collider.mass * civy) + (collider.mass * (item.elasticity * cry) * (iivy - civy)))) / (item.mass + collider.mass);
-                            }
-
-                            if (collider.type != Entity.KINEMATIC || (item.type == Entity.KINEMATIC && collider.type == Entity.KINEMATIC)) {
-                            collider.vx = (((collider.mass * civx) + (item.mass * iivx) + (item.mass * (collider.elasticity * crx) * (civx - iivx)))) / (collider.mass + item.mass);
-                            collider.vy = (((collider.mass * civy) + (item.mass * iivy) + (item.mass * (collider.elasticity * cry) * (civy - iivy)))) / (collider.mass + item.mass);
-                            }
-
-                            // Enable this to ensure that energy stays at a constant.
-                            //console.log((iivy * item.mass + civy * item.mass) + " = " + (item.vy * item.mass + collider.vy * collider.mass));
-
-                            // This positional skip keeps parts from detecting an additional collision
-                            // from the collider due to a missing change in position.
-                            // It also helps to stop the shakiness from gravity.
-
-                            // Detect which sides are colliding
+                            // Calculate the distances between the faces of the objects
                             var itemLeft = item.x;
                             var itemRight = item.x + item.width;
                             var itemTop = item.y;
@@ -378,71 +326,94 @@ var Physics = function(delta) {
                             var topDistance = Math.abs(itemTop - colliderBottom);
                             var bottomDistance = Math.abs(itemBottom - colliderTop);
 
+                            // Coefficients of restitution
+                            var crx;
+                            var cry;
+
+                            // Initial velocities
+                            var iivx = item.vx;
+                            var civx = collider.vx;
+
+                            var iivy = item.vy;
+                            var civy = collider.vy;
+
                             if (leftDistance < rightDistance && leftDistance < topDistance && leftDistance < bottomDistance) {
                                 // WEST or LEFT collision from ITEM
+
+                                // Equation of the coefficient of restitution: cr = (vb - va) / (ua - ub)
+                                crx = (collider.vx - item.vx) / (item.vx - collider.vx) || 0;
                                 if (item.type != Entity.KINEMATIC) {
+
+                                    // Collision Equation: va = (cr * mb * (vb - va) + ma * va + mb * vb) / ma + mb
+                                    item.vx = (((item.mass * iivx) + (collider.mass * civx) + (collider.mass * (item.elasticity * crx) * (iivx - civx)))) / (item.mass + collider.mass);
+
+                                    // This positional skip keeps parts from detecting an additional collision
+                                    // from the collider due to a missing change in position.
+                                    // It also helps to stop the shakiness from gravity.
                                     item.x = collider.x + collider.width;
                                     if (item.vx < 0 && GRAVITY_X < 0) {
                                         item.vx = 0;
-                                        item.sl = true;
                                     }
                                 }
                                 if (collider.type != Entity.KINEMATIC) {
+                                    collider.vx = (((collider.mass * civx) + (item.mass * iivx) + (item.mass * (collider.elasticity * crx) * (civx - iivx)))) / (collider.mass + item.mass);
                                     collider.x = item.x - collider.width;
                                     if (collider.vx > 0 && GRAVITY_X > 0) {
                                         collider.vx = 0;
-                                        collider.sr = true;
                                     }
                                 }
                             }
                             else if (rightDistance < leftDistance && rightDistance < topDistance && rightDistance < bottomDistance) {
                                 // EAST or RIGHT collision from ITEM
+                                crx = (collider.vx - item.vx) / (item.vx - collider.vx) || 0;
                                 if (item.type != Entity.KINEMATIC) {
+                                    item.vx = (((item.mass * iivx) + (collider.mass * civx) + (collider.mass * (item.elasticity * crx) * (iivx - civx)))) / (item.mass + collider.mass);
                                     item.x = collider.x - item.width;
                                     if (item.vx > 0 && GRAVITY_X > 0) {
                                         item.vx = 0;
-                                        item.sr = true;
                                     }
                                 }
                                 if (collider.type != Entity.KINEMATIC) {
+                                    collider.vx = (((collider.mass * civx) + (item.mass * iivx) + (item.mass * (collider.elasticity * crx) * (civx - iivx)))) / (collider.mass + item.mass);
                                     collider.x = item.x + item.width;
                                     if (collider.vx < 0 && GRAVITY_X < 0) {
                                         collider.vx = 0;
-                                        collider.sl = true;
                                     }
                                 }
                             }
                             else if (topDistance < bottomDistance && topDistance < leftDistance && topDistance < rightDistance) {
                                 // NORTH or TOP collision from ITEM
+                                cry = (collider.vy - item.vy) / (item.vy - collider.vy) || 0;
                                 if (item.type != Entity.KINEMATIC) {
+                                    item.vy = (((item.mass * iivy) + (collider.mass * civy) + (collider.mass * (item.elasticity * cry) * (iivy - civy)))) / (item.mass + collider.mass);
                                     item.y = collider.y + collider.height;
                                     if (item.vy < 0 && GRAVITY_Y < 0) {
                                         item.vy = 0;
-                                        item.st = true;
                                     }
                                 }
                                 if (collider.type != Entity.KINEMATIC) {
+                                    collider.vy = (((collider.mass * civy) + (item.mass * iivy) + (item.mass * (collider.elasticity * cry) * (civy - iivy)))) / (collider.mass + item.mass);
                                     collider.y = item.y - collider.height;
                                     if (collider.vy > 0 && GRAVITY_Y > 0) {
                                         collider.vy = 0;
-                                        collider.sb = true;
                                     }
                                 }
                             }
                             else if (bottomDistance < topDistance && bottomDistance < leftDistance && bottomDistance < rightDistance) {
                                 // SOUTH or BOTTOM collision from ITEM
+                                cry = (collider.vy - item.vy) / (item.vy - collider.vy) || 0;
                                 if (item.type != Entity.KINEMATIC) {
+                                    item.vy = (((item.mass * iivy) + (collider.mass * civy) + (collider.mass * (item.elasticity * cry) * (iivy - civy)))) / (item.mass + collider.mass);
                                     item.y = collider.y - item.height;
                                     if (item.vy > 0 && GRAVITY_Y > 0) {
                                         item.vy = 0;
-                                        item.sb = true;
                                     }
                                 }
                                 if (collider.type != Entity.KINEMATIC) {
+                                    collider.vy = (((collider.mass * civy) + (item.mass * iivy) + (item.mass * (collider.elasticity * cry) * (civy - iivy)))) / (collider.mass + item.mass);
                                     collider.y = item.y + item.height;
                                     if (collider.vy < 0 && GRAVITY_Y < 0) {
                                         collider.vy = 0;
-                                        collider.st = true;
                                     }
                                 }
                             }

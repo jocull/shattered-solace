@@ -45,9 +45,13 @@ var CAMERA = {
     scrollX: 0,
     scrollY: 0,
     target : null,
-    moveTo : function(focusX, focusY, frames) {
+    scrollTo : function(focusX, focusY, frames) {
         // For later
         // This will be a smooth scrolling between two objects.
+    },
+    toPoint : function(mouseX, mouseY) {
+        // For later
+        // This will convert mouse coordinates to points in the engine.
     }
 };
 
@@ -113,6 +117,13 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
     else {
         this.mass = (this.width * this.height);
     }
+
+    // Physics data
+    // Settled data for sides left, right, top, and bottom
+    this.sl = false;
+    this.sr = false;
+    this.st = false;
+    this.sb = false;
 
     // Some state values for functions and such
     this.frozen = false;
@@ -302,6 +313,11 @@ var Physics = function(delta) {
 
         // Resolve collisions
 
+                            // Disable all item settlings
+                            // These will be reset
+                            item.sl, item.sr, item.st, item.sb = false;
+                            collider.sl, collider.sr, collider.st, collider.sb = false;
+
                             // Collision Equation: va = (cr * mb * (vb - va) + ma * va + mb * vb) / ma + mb
                             // Equation of the coefficient of restitution: cr = (vb - va) / (ua - ub)
 
@@ -366,66 +382,137 @@ var Physics = function(delta) {
                                 // WEST or LEFT collision from ITEM
                                 if (item.type != Entity.KINEMATIC) {
                                     item.x = collider.x + collider.width;
+                                    if (item.vx < 0 && GRAVITY_X < 0) {
+                                        item.vx = 0;
+                                        item.sl = true;
+                                    }
                                 }
                                 if (collider.type != Entity.KINEMATIC) {
                                     collider.x = item.x - collider.width;
-                                }
-                                if (DEFLECTION == true) {
-                                    item.vy = item.vy * -1;
-                                    collider.vy = collider.vy * -1;
+                                    if (collider.vx > 0 && GRAVITY_X > 0) {
+                                        collider.vx = 0;
+                                        collider.sr = true;
+                                    }
                                 }
                             }
                             else if (rightDistance < leftDistance && rightDistance < topDistance && rightDistance < bottomDistance) {
                                 // EAST or RIGHT collision from ITEM
                                 if (item.type != Entity.KINEMATIC) {
                                     item.x = collider.x - item.width;
+                                    if (item.vx > 0 && GRAVITY_X > 0) {
+                                        item.vx = 0;
+                                        item.sr = true;
+                                    }
                                 }
                                 if (collider.type != Entity.KINEMATIC) {
                                     collider.x = item.x + item.width;
-                                }
-                                if (DEFLECTION == true) {
-                                    item.vy = item.vy * -1;
-                                    collider.vy = collider.vy * -1;
+                                    if (collider.vx < 0 && GRAVITY_X < 0) {
+                                        collider.vx = 0;
+                                        collider.sl = true;
+                                    }
                                 }
                             }
                             else if (topDistance < bottomDistance && topDistance < leftDistance && topDistance < rightDistance) {
                                 // NORTH or TOP collision from ITEM
                                 if (item.type != Entity.KINEMATIC) {
                                     item.y = collider.y + collider.height;
+                                    if (item.vy < 0 && GRAVITY_Y < 0) {
+                                        item.vy = 0;
+                                        item.st = true;
+                                    }
                                 }
                                 if (collider.type != Entity.KINEMATIC) {
                                     collider.y = item.y - collider.height;
-                                }
-                                if (DEFLECTION == true) {
-                                    item.vx = item.vx * -1;
-                                    collider.vx = collider.vx * -1;
+                                    if (collider.vy > 0 && GRAVITY_Y > 0) {
+                                        collider.vy = 0;
+                                        collider.sb = true;
+                                    }
                                 }
                             }
                             else if (bottomDistance < topDistance && bottomDistance < leftDistance && bottomDistance < rightDistance) {
                                 // SOUTH or BOTTOM collision from ITEM
                                 if (item.type != Entity.KINEMATIC) {
                                     item.y = collider.y - item.height;
+                                    if (item.vy > 0 && GRAVITY_Y > 0) {
+                                        item.vy = 0;
+                                        item.sb = true;
+                                    }
                                 }
                                 if (collider.type != Entity.KINEMATIC) {
                                     collider.y = item.y + item.height;
+                                    if (collider.vy < 0 && GRAVITY_Y < 0) {
+                                        collider.vy = 0;
+                                        collider.st = true;
+                                    }
                                 }
-                                if (DEFLECTION == true) {
-                                    item.vx = item.vx * -1;
-                                    collider.vx = collider.vx * -1;
-                                }
                             }
-                            /*
-                            if (item.type != Entity.KINEMATIC || (item.type == Entity.KINEMATIC && collider.type == Entity.KINEMATIC)) {
-                            item.x = item.x + (item.vx * delta);
-                            item.y = item.y + (item.vy * delta);
-                            }
-
-                            if (collider.type != Entity.KINEMATIC || (item.type == Entity.KINEMATIC && collider.type == Entity.KINEMATIC)) {
-                            collider.x = collider.x + (collider.vx * delta);
-                            collider.y = collider.y + (collider.vy * delta);
-                            }
-                            */
                         }
+        // Calculate Frictional Data
+                        // Coulomb Friction Equation: f <= u * n
+                        // Where f = force of friction (Force slowing the object),
+                        // u = coefficient of friction,
+                        // n = normal force (Force that is exerted by each surface on the other)
+                        /*
+                        var demo = 0.5;
+                        var friction;
+                        var directionX;
+                        var directionY;
+
+
+                        if (item.vx - collider.vx == 0) {
+                            directionX = 0;
+                        }
+                        else {
+                            directionX = (collider.vx - item.vx) / (item.vx - collider.vx);
+                        }
+
+                        if (item.vy - collider.vy == 0) {
+                            directionY = 0;
+                        }
+                        else {
+                            directionY = (collider.vy - item.vy) / (item.vy - collider.vy);
+                        }
+
+                        if (item.x + item.width == collider.x) {
+                            // EAST or RIGHT friction from ITEM
+                            if (item.type != Entity.KINEMATIC) {
+                                friction = (demo * (item.vx * item.mass) * Math.random()) / item.mass;
+                                item.vy = item.vy + (friction * directionY);
+                            }
+                            if (collider.type != Entity.KINEMATIC) {
+
+                            }
+                        }
+                        if (item.x == collider.x + collider.width) {
+                            // WEST or LEFT friction from ITEM
+                            if (item.type != Entity.KINEMATIC) {
+
+                            }
+                            if (collider.type != Entity.KINEMATIC) {
+
+                            }
+                        }
+                        if (item.y + item.height == collider.y) {
+                            // SOUTH or BOTTOM friction from ITEM
+                            if (item.type != Entity.KINEMATIC) {
+                                friction = (demo * (item.vy * item.mass) * Math.random()) / item.mass;
+                                console.log(friction);
+                                item.vx = item.vx + (friction * directionX);
+                            }
+                            if (collider.type != Entity.KINEMATIC) {
+
+                            }
+                        }
+                        if (item.y == collider.y + collider.height) {
+                            // NORTH or TOP friction from ITEM
+                            if (item.type != Entity.KINEMATIC) {
+
+                            }
+                            if (collider.type != Entity.KINEMATIC) {
+
+                            }
+                        }
+                        */
                     }
                 }
             }
@@ -447,8 +534,8 @@ var Physics = function(delta) {
             }
             else {
                 // Motion Equation of Velocity: v = v + a * t
-                item.vx = item.vx + item.ax * delta + GRAVITY_X * delta;
-                item.vy = item.vy + item.ay * delta + GRAVITY_Y * delta;
+                item.vx = item.vx + (item.ax + GRAVITY_X) * delta;
+                item.vy = item.vy + (item.ay + GRAVITY_Y) * delta;
             }
 
             // Settle
@@ -539,7 +626,7 @@ document.ontouchend = function(e) {
         SLOW_TIME = true;
         FREEZE_MODE = false;
     }
-    else if (TOUCHES.length = 0) {
+    else if (TOUCHES.length == 0) {
         SLOW_TIME = false;
         FREEZE_MODE = false;
     }
@@ -565,16 +652,26 @@ window.ondevicemotion = function(event) {
     */
 };
 
-document.onmousemove = function(e) {
-    MOUSE_X = e.pageX;
-    MOUSE_Y = e.pageY;
+VIEWPORT.onmousemove = function(e) {
+    MOUSE_X = Math.round(e.layerX * PIXEL_RATIO);
+    MOUSE_Y = Math.round(e.layerY * PIXEL_RATIO);
 };
+
+
+var drawMode = false;
+var startX;
+var startY;
+
 
 document.onmousedown = function(e) {
     switch (e.which) {
         case 1:
-            //FREEZE_MODE = true;
             // Left mouse button
+            if (drawMode == false) {
+                drawMode = true;
+                startX = MOUSE_X;
+                startY = MOUSE_Y;
+            }
             break;
         case 2:
             // Middle mouse button
@@ -589,6 +686,39 @@ document.onmousedown = function(e) {
 };
 
 document.onmouseup = function(e) {
+
+    if (drawMode == true) {
+        var endX = MOUSE_X + CAMERA.scrollX;
+        var endY = MOUSE_Y - CAMERA.scrollY;
+        startX = startX + CAMERA.scrollX;
+        startY = startY - CAMERA.scrollY;
+        var objectX;
+        var objectY;
+        var objectWidth;
+        var objectHeight;
+        if (startX < endX) {
+            objectX = startX;
+            objectWidth = endX - startX;
+        }
+        else {
+            objectX = endX;
+            objectWidth = startX - endX;
+        }
+        if (startY < endY) {
+            objectY = startY;
+            objectHeight = endY - startY;
+        }
+        else {
+            objectY = endY;
+            objectHeight = startY - endY;
+        }
+
+        new Entity("Drawn Object", objectWidth, objectHeight, objectX, objectY, Entity.DYNAMIC, "#0000ff", "#000000", 0.5);
+
+        drawMode = false;
+
+    }
+
     //FREEZE_MODE = false;
 };
 

@@ -60,7 +60,7 @@ var BACKGROUND_COLOR = "#ffffff";
 // A shortcut for drawing methods
 var view = BUFFER_CONTEXT;
 
-var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, elasticity, texture, vx, vy, ax, ay) {
+var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, elasticity, friction, texture, vx, vy, ax, ay) {
 
     // Object functions
     this.destroy = function() {
@@ -107,6 +107,7 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
     this.ay = ay || 0;
 
     this.elasticity = Math.abs(elasticity) || 0.5; // We don't want the elasticity to be negative, because then objects will move through each other.
+    this.friction = friction || 0.5;
     this.fillColor = fillColor || "#ffffff";
     this.outlineColor = outlineColor || "#000000";
     this.texture = texture || null;
@@ -117,13 +118,6 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
     else {
         this.mass = (this.width * this.height);
     }
-
-    // Physics data
-    // Settled data for sides left, right, top, and bottom
-    this.sl = false;
-    this.sr = false;
-    this.st = false;
-    this.sb = false;
 
     // Some state values for functions and such
     this.frozen = false;
@@ -423,67 +417,44 @@ var Physics = function(delta) {
                         // Where f = force of friction (Force slowing the object),
                         // u = coefficient of friction,
                         // n = normal force (Force that is exerted by each surface on the other)
-                        /*
-                        var demo = 0.5;
+
+                        var cf = (item.friction + collider.friction) / 2; // Mean of the two friction (approximate coefficient of friction)
                         var friction;
-                        var directionX;
-                        var directionY;
+                        var itemDirectionX = (item.vx > 0) ? 1 : -1;
+                        var itemDirectionY = (item.vy > 0) ? 1 : -1;
+                        var colliderDirectionX = (collider.vx > 0) ? 1 : -1;
+                        var colliderDirectionY = (collider.vy > 0) ? 1 : -1;
 
+                        //console.log(item.vx + " " + directionX);
 
-                        if (item.vx - collider.vx == 0) {
-                            directionX = 0;
-                        }
-                        else {
-                            directionX = (collider.vx - item.vx) / (item.vx - collider.vx);
-                        }
-
-                        if (item.vy - collider.vy == 0) {
-                            directionY = 0;
-                        }
-                        else {
-                            directionY = (collider.vy - item.vy) / (item.vy - collider.vy);
-                        }
-
-                        if (item.x + item.width == collider.x) {
+                        if (item.x + item.width == collider.x && item.y > collider.y - item.height && item.y < collider.y + collider.height && (item.vy != 0 || collider.vy != 0)) {
                             // EAST or RIGHT friction from ITEM
                             if (item.type != Entity.KINEMATIC) {
-                                friction = (demo * (item.vx * item.mass) * Math.random()) / item.mass;
-                                item.vy = item.vy + (friction * directionY);
-                            }
-                            if (collider.type != Entity.KINEMATIC) {
-
+                                friction = (cf * (item.vx * item.mass) * Math.random()) / item.mass;
+                                item.vy = item.vy + (friction * itemDirectionY);
                             }
                         }
-                        if (item.x == collider.x + collider.width) {
+                        else if (item.x == collider.x + collider.width && item.y > collider.y - item.height && item.y < collider.y + collider.height && (item.vy != 0 || collider.vy != 0)) {
                             // WEST or LEFT friction from ITEM
                             if (item.type != Entity.KINEMATIC) {
-
-                            }
-                            if (collider.type != Entity.KINEMATIC) {
-
+                                friction = (cf * (item.vx * item.mass) * Math.random()) / item.mass;
+                                item.vy = item.vy + (friction * itemDirectionY * -1);
                             }
                         }
-                        if (item.y + item.height == collider.y) {
+                        if (item.y + item.height == collider.y && item.x > collider.x - item.width && item.x < collider.x + collider.width && (item.vx != 0 || collider.vx != 0)) {
                             // SOUTH or BOTTOM friction from ITEM
                             if (item.type != Entity.KINEMATIC) {
-                                friction = (demo * (item.vy * item.mass) * Math.random()) / item.mass;
-                                console.log(friction);
-                                item.vx = item.vx + (friction * directionX);
-                            }
-                            if (collider.type != Entity.KINEMATIC) {
-
+                                friction = (cf * (item.vy * item.mass) * Math.random()) / item.mass;
+                                item.vx = item.vx + (friction * itemDirectionX);
                             }
                         }
-                        if (item.y == collider.y + collider.height) {
+                        else if (item.y == collider.y + collider.height && item.x > collider.x - item.width && item.x < collider.x + collider.width && (item.vx != 0 || collider.vx != 0)) {
                             // NORTH or TOP friction from ITEM
                             if (item.type != Entity.KINEMATIC) {
-
-                            }
-                            if (collider.type != Entity.KINEMATIC) {
-
+                                friction = (cf * (item.vy * item.mass) * Math.random()) / item.mass;
+                                item.vx = item.vx + (friction * itemDirectionX * -1);
                             }
                         }
-                        */
                     }
                 }
             }
@@ -659,9 +630,9 @@ document.onmousedown = function(e) {
 document.onmouseup = function(e) {
 
     if (drawMode == true) {
-        var endX = MOUSE_X + CAMERA.scrollX;
+        var endX = MOUSE_X - CAMERA.scrollX;
         var endY = MOUSE_Y - CAMERA.scrollY;
-        startX = startX + CAMERA.scrollX;
+        startX = startX - CAMERA.scrollX;
         startY = startY - CAMERA.scrollY;
         var objectX;
         var objectY;
@@ -757,6 +728,7 @@ var Engine = function() {
     // Delta Capture
     var thisStep = new Date().getTime();
     var delta = (thisStep - lastStep) / 100 || thisStep - thisStep;
+    if (delta > 3) { delta = thisStep - thisStep; } // to prevent skipping and freezes.
     lastStep = thisStep;
 
     // Calculations

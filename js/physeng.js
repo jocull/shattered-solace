@@ -420,39 +420,132 @@ var Physics = function(delta) {
 
                         var cf = (item.friction + collider.friction) / 2; // Mean of the two friction (approximate coefficient of friction)
                         var friction;
-                        var itemDirectionX = (item.vx > 0) ? 1 : -1;
-                        var itemDirectionY = (item.vy > 0) ? 1 : -1;
-                        var colliderDirectionX = (collider.vx > 0) ? 1 : -1;
-                        var colliderDirectionY = (collider.vy > 0) ? 1 : -1;
+                        var itemDirectionX;
+                        var itemDirectionY;
+                        var colliderDirectionX;
+                        var colliderDirectionY;
+                        var seed;
 
-                        //console.log(item.vx + " " + directionX);
+                        if (item.vx > 0) {
+                            itemDirectionX = -1;
+                            if (collider.vx > item.vx) {
+                                colliderDirectionX = -1;
+                            }
+                            else if (collider.vx < item.vx) {
+                                colliderDirectionX = 1;
+                            }
+                            else {
+                                colliderDirectionX = 0;
+                            }
+                        }
+                        else if (item.vx < 0) {
+                            itemDirectionX = 1;
+                            if (collider.vx > item.vx) {
+                                colliderDirectionX = -1;
+                            }
+                            else if (collider.vx < item.vx) {
+                                colliderDirectionX = 1;
+                            }
+                            else {
+                                colliderDirectionX = 0;
+                            }
+                        }
+                        else {
+                            itemDirectionX = 0;
+                            if (collider.vx > 0) {
+                                colliderDirectionX = -1;
+                            }
+                            else if (collider.vx < 0) {
+                                colliderDirectionX = 1;
+                            }
+                            else {
+                                colliderDirectionX = 0;
+                            }
+                        }
+
+                        if (item.vy > 0) {
+                            itemDirectionY = -1;
+                            if (collider.vy > item.vy) {
+                                colliderDirectionY = -1;
+                            }
+                            else if (collider.vy < item.vy) {
+                                colliderDirectionY = 1;
+                            }
+                            else {
+                                colliderDirectionY = 0;
+                            }
+                        }
+                        else if (item.vy < 0) {
+                            itemDirectionY = 1;
+                            if (collider.vy > item.vy) {
+                                colliderDirectionY = -1;
+                            }
+                            else if (collider.vy < item.vy) {
+                                colliderDirectionY = 1;
+                            }
+                            else {
+                                colliderDirectionY = 0;
+                            }
+                        }
+                        else {
+                            itemDirectionY = 0;
+                            if (collider.vy > 0) {
+                                colliderDirectionY = -1;
+                            }
+                            else if (collider.vy < 0) {
+                                colliderDirectionY = 1;
+                            }
+                            else {
+                                colliderDirectionY = 0;
+                            }
+                        }
 
                         if (item.x + item.width == collider.x && item.y > collider.y - item.height && item.y < collider.y + collider.height && (item.vy != 0 || collider.vy != 0)) {
                             // EAST or RIGHT friction from ITEM
+                            seed = Math.random();
                             if (item.type != Entity.KINEMATIC) {
-                                friction = (cf * (item.vx * item.mass) * Math.random()) / item.mass;
+                                friction = Math.abs((cf * (item.vx * item.mass) * seed) / item.mass);
                                 item.vy = item.vy + (friction * itemDirectionY);
+                            }
+                            if (collider.type != Entity.KINEMATIC && item.type != Entity.KINEMATIC) {
+                                friction = Math.abs((cf * (collider.vx * collider.mass) * seed) / collider.mass);
+                                collider.vy = collider.vy + (friction * colliderDirectionY);
                             }
                         }
                         else if (item.x == collider.x + collider.width && item.y > collider.y - item.height && item.y < collider.y + collider.height && (item.vy != 0 || collider.vy != 0)) {
                             // WEST or LEFT friction from ITEM
+                            seed = Math.random();
                             if (item.type != Entity.KINEMATIC) {
-                                friction = (cf * (item.vx * item.mass) * Math.random()) / item.mass;
-                                item.vy = item.vy + (friction * itemDirectionY * -1);
+                                friction = Math.abs((cf * (item.vx * item.mass) * seed) / item.mass);
+                                item.vy = item.vy + (friction * itemDirectionY);
+                            }
+                            if (collider.type != Entity.KINEMATIC && item.type != Entity.KINEMATIC) {
+                                friction = Math.abs((cf * (collider.vx * collider.mass) * seed) / collider.mass);
+                                collider.vy = collider.vy + (friction * colliderDirectionY);
                             }
                         }
                         if (item.y + item.height == collider.y && item.x > collider.x - item.width && item.x < collider.x + collider.width && (item.vx != 0 || collider.vx != 0)) {
                             // SOUTH or BOTTOM friction from ITEM
+                            seed = Math.random();
                             if (item.type != Entity.KINEMATIC) {
-                                friction = (cf * (item.vy * item.mass) * Math.random()) / item.mass;
+                                friction = Math.abs((cf * (item.vy * item.mass) * seed) / item.mass);
                                 item.vx = item.vx + (friction * itemDirectionX);
+                            }
+                            if (collider.type != Entity.KINEMATIC && item.type != Entity.KINEMATIC) {
+                                friction = Math.abs((cf * (collider.vy * collider.mass) * seed) / collider.mass);
+                                collider.vx = collider.vx + (friction * colliderDirectionX);
                             }
                         }
                         else if (item.y == collider.y + collider.height && item.x > collider.x - item.width && item.x < collider.x + collider.width && (item.vx != 0 || collider.vx != 0)) {
                             // NORTH or TOP friction from ITEM
+                            seed = Math.random();
                             if (item.type != Entity.KINEMATIC) {
-                                friction = (cf * (item.vy * item.mass) * Math.random()) / item.mass;
-                                item.vx = item.vx + (friction * itemDirectionX * -1);
+                                friction = Math.abs((cf * (item.vy * item.mass) * seed) / item.mass);
+                                item.vx = item.vx + (friction * itemDirectionX);
+                            }
+                            if (collider.type != Entity.KINEMATIC && item.type != Entity.KINEMATIC) {
+                                friction = Math.abs((cf * (collider.vy * collider.mass) * seed) / collider.mass);
+                                collider.vx = collider.vx + (friction * colliderDirectionX);
                             }
                         }
                     }
@@ -604,6 +697,7 @@ var drawMode = false;
 var startX;
 var startY;
 
+var tickleMode = false;
 
 document.onmousedown = function(e) {
     switch (e.which) {
@@ -617,6 +711,7 @@ document.onmousedown = function(e) {
             break;
         case 2:
             // Middle mouse button
+            tickleMode = true;
             break;
         case 3:
             // Right mouse button
@@ -660,7 +755,7 @@ document.onmouseup = function(e) {
         drawMode = false;
 
     }
-
+    tickleMode = false;
     //FREEZE_MODE = false;
 };
 

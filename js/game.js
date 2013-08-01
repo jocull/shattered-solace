@@ -5,8 +5,6 @@ GameConditions = function() {
         for (var i= 1; i < WORKSPACE.length; i++) {
             if (WORKSPACE[i] != null) {
                 var item = WORKSPACE[i];
-                if ( Math.sqrt( ((item.x + item.width / 2) - MOUSE_X)^2 + ((item.y + item.height / 2) - MOUSE_Y)^2) < 100 ) {
-                    console.log("Tickling " + item.name);
                     var rand = Math.random();
                     if (rand > 0.5) {
                         item.vx = item.vx + (Math.random() * -1);
@@ -21,11 +19,14 @@ GameConditions = function() {
                     }
                     else {
                         item.vy = item.vy + Math.random();
-                    }
                 }
             }
         }
     }
+
+    wait(1, function() {
+        console.log("A second has passed.");
+    });
 
     /*
     if (escape.x > VIEWPORT.width / 2 + 125 - escape.width) {

@@ -45,13 +45,17 @@ var CAMERA = {
     scrollX: 0,
     scrollY: 0,
     target : null,
-    scrollTo : function(focusX, focusY, frames) {
+    scrollTo : function(focusX, focusY, target, frames) {
         // For later
         // This will be a smooth scrolling between two objects.
     },
-    toPoint : function(mouseX, mouseY) {
-        // For later
-        // This will convert mouse coordinates to points in the engine.
+    toPointX : function(mouseX) {
+        var point = mouseX - CAMERA.scrollX;
+        return point;
+    },
+    toPointY : function(mouseY) {
+        var point = mouseY - CAMERA.scrollY;
+        return point;
     }
 };
 
@@ -817,14 +821,42 @@ var GameConditions; // This is a function that is set in the game.js file.
 var SLOW_TIME = false;
 var SLOW_TIME_FACTOR = 5;
 
+var thisStep;
 var lastStep;
 
+var waitStart;
+var waitEnd;
+var waitState;
+var waitCallback;
+
+var wait = function(seconds, callback) {
+    if (waitState != true) {
+        waitStart = thisStep;
+        seconds = seconds * 1000;
+        waitEnd = waitStart + seconds;
+        waitCallback = callback;
+        waitState = true;
+    }
+};
+
 var Engine = function() {
+
+
     // Delta Capture
-    var thisStep = new Date().getTime();
+    thisStep = new Date().getTime();
     var delta = (thisStep - lastStep) / 100 || thisStep - thisStep;
     if (delta > 3) { delta = thisStep - thisStep; } // to prevent skipping and freezes.
     lastStep = thisStep;
+    if (waitState == true) {
+        var waitCheck = function(waitStart, waitEnd, thisStep, callback) {
+            //console.log(thisStep + "\n" + waitEnd);
+            if (thisStep >= waitEnd) {
+                waitState = false;
+                callback();
+            }
+        }(waitStart, waitEnd, thisStep, waitCallback);
+    }
+
 
     // Calculations
     if (SLOW_TIME == true) {

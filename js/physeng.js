@@ -45,9 +45,62 @@ var CAMERA = {
     scrollX: 0,
     scrollY: 0,
     target : null,
-    scrollTo : function(focusX, focusY, target, frames) {
-        // For later
-        // This will be a smooth scrolling between two objects.
+    scrollTick : 0,
+    scrollTo : function(focusX, focusY, increment, target) {
+        var scrollTick = increment;
+        var step = scrollTick;
+        var camX = CAMERA.focusX;
+        var camY = CAMERA.focusY;
+
+        if (CAMERA.target != null) {
+            CAMERA.target = null;
+        }
+
+        for (step = 1; step <= increment; step++) {
+            if (target != null) {
+                focusX = target.x + (target.width / 2);
+                focusY = target.y + (target.height / 2);
+
+                if (camX >= focusX) {
+                    CAMERA.focusX = (camX - focusX) / increment * step;
+                }
+                else if (camX < focusX) {
+                    CAMERA.focusX = (focusX - camX) / increment * step;
+                }
+                if (camY >= focusY) {
+                    CAMERA.focusY = (camY - focusY) / increment * step;
+                }
+                else if (camY < focusY) {
+                    CAMERA.focusY = (focusY - camY) / increment * step;
+                }
+
+                if (step >= increment) {
+                    CAMERA.target = target;
+                }
+            }
+            else {
+                if (camX >= focusX) {
+                    CAMERA.focusX = (camX - focusX) / increment * step;
+                }
+                else if (camX < focusX) {
+                    CAMERA.focusX = (focusX - camX) / increment * step;
+                }
+                if (camY >= focusY) {
+                    CAMERA.focusY = (camY - focusY) / increment * step;
+                }
+                else if (camY < focusY) {
+                    CAMERA.focusY = (focusY - camY) / increment * step;
+                }
+
+                if (step >= increment) {
+                    CAMERA.focusX = focusX;
+                    CAMERA.focusY = focusY;
+                }
+            }
+        }
+    },
+    scrollCheck : function() {
+
     },
     toPointX : function(mouseX) {
         var point = mouseX - CAMERA.scrollX;
@@ -76,10 +129,6 @@ var Entity = function(name, width, height, x, y, type, fillColor, outlineColor, 
     this.freeze = function(time, toggleColor) {
         this.frozen = true;
         this.freezeTime = time || 5;
-        //this.vx = 0;
-        //this.vy = 0;
-        //this.ax = 0;
-        //this.ay = 0;
 
         if (toggleColor == true) {
             if (this.fillColor != "#00bbff" && this.outlineColor != "#005577") {
@@ -270,21 +319,6 @@ var DrawFrame = function() {
     var fpsText = 'FPS: ' + framesPerSecond;
     var fpsMeasurement = view.measureText(fpsText);
     view.fillText(fpsText, VIEWPORT.width - (fpsMeasurement.width) - 5, 15);
-
-    if (FREEZE_MODE == true) {
-        view.beginPath();
-        view.arc(MOUSE_X, MOUSE_Y, FREEZE_RADIUS, 0, 2*Math.PI, false);
-        view.closePath();
-
-        view.globalAlpha = 0.1;
-
-        view.fillStyle = "#00bbff";
-        view.strokeStyle = "#005577";
-        view.fill();
-        view.stroke();
-
-        view.globalAlpha = 1;
-    }
 };
 
 var Physics = function(delta) {
@@ -624,22 +658,19 @@ var MOUSE_Y;
 var TOUCHES = [];
 
 document.ontouchmove = function(e) {
-    e.preventDefault(); //Stop scrolling on iOS
+    e.preventDefault(); // Stop scrolling on iOS
     e.stopPropagation();
     TOUCHES = e.changedTouches;
 
     if (TOUCHES.length > 1) {
         SLOW_TIME = true;
-        FREEZE_MODE = false;
     }
     else if (TOUCHES.length == 1) {
-        FREEZE_MODE = true;
         MOUSE_X = TOUCHES[0].pageX * PIXEL_RATIO;
         MOUSE_Y = TOUCHES[0].pageY * PIXEL_RATIO;
     }
     else if (TOUCHES.length = 0) {
         SLOW_TIME = false;
-        FREEZE_MODE = false;
     }
 };
 
@@ -648,10 +679,8 @@ document.ontouchstart = function(e) {
 
     if (TOUCHES.length > 1) {
         SLOW_TIME = true;
-        FREEZE_MODE = false;
     }
     else if (TOUCHES.length == 1) {
-        FREEZE_MODE = true;
         MOUSE_X = TOUCHES[0].pageX * PIXEL_RATIO;
         MOUSE_Y = TOUCHES[0].pageY * PIXEL_RATIO;
     }
@@ -663,20 +692,19 @@ document.ontouchend = function(e) {
 
     if (TOUCHES.length > 1) {
         SLOW_TIME = true;
-        FREEZE_MODE = false;
     }
     else if (TOUCHES.length == 0) {
         SLOW_TIME = false;
-        FREEZE_MODE = false;
     }
     else {
         SLOW_TIME = false;
-        FREEZE_MODE = false;
     }
 };
 
 window.ondevicemotion = function(event) {
     /*
+    // Use this to set the engine's gravity to that of the real world
+    // by using the accelerometer on the device;
     devicex = event.accelerationIncludingGravity.x;
     devicey = event.accelerationIncludingGravity.y;
     devicez = event.accelerationIncludingGravity.z;
@@ -715,12 +743,11 @@ document.onmousedown = function(e) {
             break;
         case 2:
             // Middle mouse button
-            tickleMode = true;
             break;
         case 3:
             // Right mouse button
-            CAMERA.focusX = MOUSE_X;
-            CAMERA.focusY = MOUSE_Y;
+            CAMERA.focusX = CAMERA.toPointX(MOUSE_X);
+            CAMERA.focusY = CAMERA.toPointY(MOUSE_Y);
             CAMERA.target = null;
             break;
     }
@@ -759,8 +786,6 @@ document.onmouseup = function(e) {
         drawMode = false;
 
     }
-    tickleMode = false;
-    //FREEZE_MODE = false;
 };
 
 document.onkeydown = function(e) {
@@ -813,9 +838,6 @@ document.onkeyup = function(e) {
     }
 };
 
-var FREEZE_MODE = false;
-var FREEZE_RADIUS = 50;
-
 var GameConditions; // This is a function that is set in the game.js file.
 
 var SLOW_TIME = false;
@@ -840,23 +862,20 @@ var wait = function(seconds, callback) {
 };
 
 var Engine = function() {
-
-
     // Delta Capture
     thisStep = new Date().getTime();
     var delta = (thisStep - lastStep) / 100 || thisStep - thisStep;
     if (delta > 3) { delta = thisStep - thisStep; } // to prevent skipping and freezes.
     lastStep = thisStep;
+
     if (waitState == true) {
         var waitCheck = function(waitStart, waitEnd, thisStep, callback) {
-            //console.log(thisStep + "\n" + waitEnd);
             if (thisStep >= waitEnd) {
                 waitState = false;
                 callback();
             }
         }(waitStart, waitEnd, thisStep, waitCallback);
     }
-
 
     // Calculations
     if (SLOW_TIME == true) {
@@ -869,6 +888,7 @@ var Engine = function() {
     GameConditions();
 
     // Draw
+    if (CAMERA.scrollTick == false)
     DrawFrame();
 
     // Refresh Frame

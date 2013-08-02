@@ -24,8 +24,9 @@ GameConditions = function() {
         }
     }
 
-    wait(1, function() {
-        console.log("A second has passed.");
+    wait(3, function() {
+        var object = Math.round(Math.random() * WORKSPACE.length);
+        CAMERA.scrollTo(0, 0, 100, WORKSPACE[object]);
     });
 
     /*

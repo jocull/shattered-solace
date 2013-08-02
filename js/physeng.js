@@ -45,62 +45,87 @@ var CAMERA = {
     scrollX: 0,
     scrollY: 0,
     target : null,
-    scrollTick : 0,
+    scrollTarget : {
+        focusX : 0,
+        focusY : 0,
+        startX : 0,
+        startY : 0,
+        increment : 0,
+        step : 0,
+        target : null,
+        state : false
+    },
     scrollTo : function(focusX, focusY, increment, target) {
-        var scrollTick = increment;
-        var step = scrollTick;
-        var camX = CAMERA.focusX;
-        var camY = CAMERA.focusY;
-
-        if (CAMERA.target != null) {
-            CAMERA.target = null;
+        this.scrollTarget.focusX = focusX;
+        this.scrollTarget.focusY = focusY;
+        if (target != null) {
+            this.scrollTarget.focusX = target.x + (target.width / 2);
+            this.scrollTarget.focusY = target.y + (target.height / 2);
         }
+        this.scrollTarget.startX = CAMERA.focusX;
+        this.scrollTarget.startY = CAMERA.focusY;
+        this.scrollTarget.increment = increment;
+        this.scrollTarget.target = target || null;
+        this.scrollTarget.step = 0;
+        this.scrollTarget.state = true;
+    },
+    scrollCheck : function() {
+        if (this.scrollTarget.state == true) {
+            this.scrollTarget.step++;
 
-        for (step = 1; step <= increment; step++) {
-            if (target != null) {
-                focusX = target.x + (target.width / 2);
-                focusY = target.y + (target.height / 2);
+            var main = this.scrollTarget;
 
-                if (camX >= focusX) {
-                    CAMERA.focusX = (camX - focusX) / increment * step;
+            if (CAMERA.target != null) {
+                CAMERA.target = null;
+            }
+
+            if (main.target != null) {
+                main.focusX = main.target.x + (main.target.width / 2);
+                main.focusY = main.target.y + (main.target.height / 2);
+
+                if (main.startX >= main.focusX) {
+                    CAMERA.focusX = (((main.focusX - main.startX) / main.increment) * main.step) + main.startX;
                 }
-                else if (camX < focusX) {
-                    CAMERA.focusX = (focusX - camX) / increment * step;
+                else if (main.startX < main.focusX) {
+                    CAMERA.focusX = (((main.focusX - main.startX) / main.increment) * main.step) + main.startX;
                 }
-                if (camY >= focusY) {
-                    CAMERA.focusY = (camY - focusY) / increment * step;
+                if (main.startY >= main.focusY) {
+                    CAMERA.focusY = (((main.focusY - main.startY) / main.increment) * main.step) + main.startY;
                 }
-                else if (camY < focusY) {
-                    CAMERA.focusY = (focusY - camY) / increment * step;
+                else if (main.startY < main.focusY) {
+                    CAMERA.focusY = (((main.focusY - main.startY) / main.increment) * main.step) + main.startY;
                 }
 
-                if (step >= increment) {
-                    CAMERA.target = target;
+                //console.log(main.step + " " + main.increment);
+
+                if (main.step >= main.increment) {
+                    CAMERA.target = main.target;
                 }
             }
             else {
-                if (camX >= focusX) {
-                    CAMERA.focusX = (camX - focusX) / increment * step;
+                if (main.startX >= main.focusX) {
+                    CAMERA.focusX = (main.startX - main.focusX) / main.increment * main.step;
                 }
-                else if (camX < focusX) {
-                    CAMERA.focusX = (focusX - camX) / increment * step;
+                else if (main.startX < main.focusX) {
+                    CAMERA.focusX = (main.focusX - main.startX) / main.increment * main.step;
                 }
-                if (camY >= focusY) {
-                    CAMERA.focusY = (camY - focusY) / increment * step;
+                if (main.startY >= main.focusY) {
+                    CAMERA.focusY = (main.startY - main.focusY) / main.increment * main.step;
                 }
-                else if (camY < focusY) {
-                    CAMERA.focusY = (focusY - camY) / increment * step;
+                else if (main.startY < main.focusY) {
+                    CAMERA.focusY = (main.focusY - main.startX) / main.increment * main.step;
                 }
 
-                if (step >= increment) {
-                    CAMERA.focusX = focusX;
-                    CAMERA.focusY = focusY;
+                if (main.step >= main.increment) {
+                    CAMERA.focusX = main.focusX;
+                    CAMERA.focusY = main.focusY;
                 }
             }
-        }
-    },
-    scrollCheck : function() {
 
+            if (this.scrollTarget.step >= this.scrollTarget.increment) {
+                this.scrollTarget.state = false;
+            }
+        }
     },
     toPointX : function(mouseX) {
         var point = mouseX - CAMERA.scrollX;
@@ -888,7 +913,7 @@ var Engine = function() {
     GameConditions();
 
     // Draw
-    if (CAMERA.scrollTick == false)
+    CAMERA.scrollCheck();
     DrawFrame();
 
     // Refresh Frame

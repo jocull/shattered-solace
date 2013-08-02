@@ -11,8 +11,6 @@ var SETTLE_POINT = 0.05;
 var GRAVITY_X = 0;
 var GRAVITY_Y = 0; // 9.8 m/s^2 is Earth gravity
 
-var DEFLECTION = true;
-
 var WORKSPACE = [];
 
 // Engine Output
@@ -95,8 +93,6 @@ var CAMERA = {
                 else if (main.startY < main.focusY) {
                     CAMERA.focusY = (((main.focusY - main.startY) / main.increment) * main.step) + main.startY;
                 }
-
-                //console.log(main.step + " " + main.increment);
 
                 if (main.step >= main.increment) {
                     CAMERA.target = main.target;
@@ -239,7 +235,6 @@ var DrawFrame = function() {
     CAMERA.scrollY = (VIEWPORT.height / 2) - CAMERA.focusY;
 
     // Clear the view
-
     view.fillStyle = BACKGROUND_COLOR;
     view.fillRect(0, 0, VIEWPORT.width, VIEWPORT.height);
 
@@ -274,9 +269,7 @@ var DrawFrame = function() {
                         view.closePath();
 
                         view.fillStyle = item.fillColor;
-                        //view.strokeStyle = item.outlineColor;
                         view.fill();
-                        //view.stroke();
                     }
                     else {
                         var texture = new Image();
@@ -309,15 +302,12 @@ var DrawFrame = function() {
                 view.strokeStyle = item.outlineColor;
                 view.fill();
                 view.stroke();
-
-
             }
             else
             {
-
-                trail(item, 128, 0.3, 0.1);
-                trail(item, 512, 0.2, 0.2);
-                trail(item, 1024, 0.1, 0.3);
+                trail(item, 32, 0.3, 0.1);
+                trail(item, 128, 0.2, 0.2);
+                trail(item, 512, 0.1, 0.3);
 
                 var texture = new Image();
                 texture.src = item.texture;
@@ -687,25 +677,16 @@ document.ontouchmove = function(e) {
     e.stopPropagation();
     TOUCHES = e.changedTouches;
 
-    if (TOUCHES.length > 1) {
-        SLOW_TIME = true;
-    }
-    else if (TOUCHES.length == 1) {
+    if (TOUCHES.length >= 1) {
         MOUSE_X = TOUCHES[0].pageX * PIXEL_RATIO;
         MOUSE_Y = TOUCHES[0].pageY * PIXEL_RATIO;
-    }
-    else if (TOUCHES.length = 0) {
-        SLOW_TIME = false;
     }
 };
 
 document.ontouchstart = function(e) {
     TOUCHES = e.changedTouches;
 
-    if (TOUCHES.length > 1) {
-        SLOW_TIME = true;
-    }
-    else if (TOUCHES.length == 1) {
+    if (TOUCHES.length >= 1) {
         MOUSE_X = TOUCHES[0].pageX * PIXEL_RATIO;
         MOUSE_Y = TOUCHES[0].pageY * PIXEL_RATIO;
     }
@@ -714,16 +695,6 @@ document.ontouchstart = function(e) {
 
 document.ontouchend = function(e) {
     TOUCHES = e.changedTouches;
-
-    if (TOUCHES.length > 1) {
-        SLOW_TIME = true;
-    }
-    else if (TOUCHES.length == 0) {
-        SLOW_TIME = false;
-    }
-    else {
-        SLOW_TIME = false;
-    }
 };
 
 window.ondevicemotion = function(event) {
@@ -753,8 +724,6 @@ VIEWPORT.onmousemove = function(e) {
 var drawMode = false;
 var startX;
 var startY;
-
-var tickleMode = false;
 
 document.onmousedown = function(e) {
     switch (e.which) {
@@ -819,23 +788,18 @@ document.onkeydown = function(e) {
     //console.log('KEY DOWN: ' + key);
     if (key == "87" || key == "38") {
         // W or UP key
-        Player.vy = -50;
     }
     if (key == "65" || key == "37") {
         // A or LEFT key
-        Player.ax = -10;
     }
     if (key == "83" || key == "40") {
         // S or DOWN key
-        Player.vy = 50;
     }
     if (key == "68" || key == "39") {
         // D or RIGHT key
-        Player.ax = 10;
     }
     if (key == "32") {
         // Spacebar
-        SLOW_TIME = true;
     }
 };
 
@@ -848,25 +812,19 @@ document.onkeyup = function(e) {
     }
     if (key == "65" || key == "37") {
         // A or LEFT key
-        Player.ax = 0;
     }
     if (key == "83" || key == "40") {
         // S or DOWN key
     }
     if (key == "68" || key == "39") {
         // D or RIGHT key
-        Player.ax = 0;
     }
     if (key == "32") {
         // Spacebar
-        SLOW_TIME = false;
     }
 };
 
 var GameConditions; // This is a function that is set in the game.js file.
-
-var SLOW_TIME = false;
-var SLOW_TIME_FACTOR = 5;
 
 var thisStep;
 var lastStep;
@@ -903,12 +861,7 @@ var Engine = function() {
     }
 
     // Calculations
-    if (SLOW_TIME == true) {
-        Physics(delta / SLOW_TIME_FACTOR);
-    }
-    else {
-        Physics(delta);
-    }
+    Physics(delta);
 
     GameConditions();
 
